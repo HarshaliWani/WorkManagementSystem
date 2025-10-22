@@ -11,7 +11,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ grs, selectedGR, onGRSelect }) => {
   const [expandedGRs, setExpandedGRs] = useState<Set<string>>(new Set());
 
-  const toggleGRExpansion = (grNumber: string) => {
+  const toggleGRExpansion = (e: React.MouseEvent, grNumber: string) => {
+    e.stopPropagation();
     const newExpanded = new Set(expandedGRs);
     if (newExpanded.has(grNumber)) {
       newExpanded.delete(grNumber);
@@ -22,9 +23,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ grs, selectedGR, onGRSelect })
   };
 
   const handleGRClick = (grNumber: string) => {
-    // Toggle expansion
-    toggleGRExpansion(grNumber);
-    // Select the GR for main content
     onGRSelect(grNumber);
   };
 
@@ -66,12 +64,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ grs, selectedGR, onGRSelect })
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center">
-                      {isExpanded ? (
-                        <ChevronDown className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
-                      )}
-                      <p className={`text-sm font-medium truncate ${
+                      <button
+                        onClick={(e) => toggleGRExpansion(e, gr.grNumber)}
+                        className="p-1 hover:bg-gray-200 rounded transition-colors"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        )}
+                      </button>
+                      <p className={`text-sm font-medium truncate ml-1 ${
                         isSelected ? 'text-blue-900' : 'text-gray-900'
                       }`}>
                         {gr.grNumber}

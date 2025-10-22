@@ -37,3 +37,16 @@ Thumbs.db
 
 # Misc
 .cache
+
+# Django
+*.pyc
+__pycache__/
+db.sqlite3
+*.sqlite3
+/media/
+/staticfiles/
+.env
+
+# Virtual environment
+venv/
+env/
