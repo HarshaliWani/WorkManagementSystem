@@ -11,6 +11,10 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+ROOT_URLCONF = 'management_system.urls'
+
+WSGI_APPLICATION = 'management_system.wsgi.application'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
