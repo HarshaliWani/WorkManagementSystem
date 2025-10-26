@@ -9,32 +9,31 @@ class TechnicalSanction(models.Model):
     work_portion = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     royalty = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     testing = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    work_portion_total = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    gst = models.DecimalField(max_digits=5, decimal_places=2, default=18.00, help_text="GST Percentage")
-    grand_total = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    work_portion_total = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="Work Portion Total", blank=True)
+    
+    gst_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=18.00, verbose_name="GST %")
+    gst = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="GST Amount", blank=True)
+    
+    grand_total = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="Grand Total", blank=True)
     
     # Additional fields
-    consultancy = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    contingency = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    labour_insurance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    final_total = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    consultancy = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="Consultancy")
     
-    # Checkboxes
-    noting = models.BooleanField(default=False)
-    order = models.BooleanField(default=False)
+    contingency_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=4.00, verbose_name="Contingency %")
+    contingency = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="Contingency Amount", blank=True)
+    
+    labour_insurance_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=1.00, verbose_name="Labour Insurance %")
+    labour_insurance = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="Labour Insurance Amount", blank=True)
+    
+    final_total = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="Final Total", blank=True)
     
     # Checkboxes with dates - auto-fill on check
-    online_offline = models.BooleanField(default=False)
-    online_offline_date = models.DateField(null=True, blank=True)
+    noting = models.BooleanField(default=False, verbose_name="Noting")
+    noting_date = models.DateField(null=True, blank=True, verbose_name="Noting Date")
     
-    technical_verification = models.BooleanField(default=False)
-    technical_verification_date = models.DateField(null=True, blank=True)
+    order = models.BooleanField(default=False, verbose_name="Order")
+    order_date = models.DateField(null=True, blank=True, verbose_name="Order Date")
     
-    financial_verification = models.BooleanField(default=False)
-    financial_verification_date = models.DateField(null=True, blank=True)
-    
-    loa = models.BooleanField(default=False)
-    loa_date = models.DateField(null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -43,36 +42,77 @@ class TechnicalSanction(models.Model):
         verbose_name = "Technical Sanction"
         verbose_name_plural = "Technical Sanctions"
     
+    def calculate_work_portion_total(self):
+        """Calculate work_portion + royalty + testing"""
+        return self.work_portion + self.royalty + self.testing
+    
+    def calculate_gst(self):
+        """Calculate GST on work_portion"""
+        return (self.work_portion * self.gst_percentage) / 100
+    
+    def calculate_grand_total(self):
+        """Calculate work_portion + royalty + testing + gst"""
+        return self.work_portion + self.royalty + self.testing + self.gst
+    
+    def calculate_contingency(self):
+        """Calculate contingency on work_portion"""
+        return (self.work_portion * self.contingency_percentage) / 100
+    
+    def calculate_labour_insurance(self):
+        """Calculate labour insurance on work_portion"""
+        return (self.work_portion * self.labour_insurance_percentage) / 100
+    
+    def calculate_final_total(self):
+        """Calculate final total including all costs"""
+        return (self.work_portion + self.royalty + self.testing + self.gst + 
+                self.consultancy + self.contingency + self.labour_insurance)
+
     def save(self, *args, **kwargs):
         """Auto-populate dates when checkboxes are checked"""
         today = timezone.now().date()
         
         # If checkbox is checked and date is empty, auto-fill with today's date
-        if self.online_offline and not self.online_offline_date:
-            self.online_offline_date = today
+        if self.noting and not self.noting_date:
+            self.noting_date = today
         
-        if self.technical_verification and not self.technical_verification_date:
-            self.technical_verification_date = today
-        
-        if self.financial_verification and not self.financial_verification_date:
-            self.financial_verification_date = today
-        
-        if self.loa and not self.loa_date:
-            self.loa_date = today
+        if self.order and not self.order_date:
+            self.order_date = today
         
         # If checkbox is unchecked, clear the date
-        if not self.online_offline:
-            self.online_offline_date = None
+        if not self.noting:
+            self.noting_date = None
         
-        if not self.technical_verification:
-            self.technical_verification_date = None
+        if not self.order:
+            self.order_date = None
         
-        if not self.financial_verification:
-            self.financial_verification_date = None
+        # Auto-calculate values if they haven't been manually set
+        # We check if the field is 0 or matches the calculated value to auto-update
+        calculated_work_portion_total = self.calculate_work_portion_total()
+        calculated_gst = self.calculate_gst()
+        calculated_grand_total = self.calculate_grand_total()
+        calculated_contingency = self.calculate_contingency()
+        calculated_labour_insurance = self.calculate_labour_insurance()
+        calculated_final_total = self.calculate_final_total()
         
-        if not self.loa:
-            self.loa_date = None
+        # Auto-fill if field is 0 (not manually edited)
+        if self.work_portion_total == 0:
+            self.work_portion_total = calculated_work_portion_total
         
+        if self.gst == 0:
+            self.gst = calculated_gst
+        
+        if self.grand_total == 0:
+            self.grand_total = calculated_grand_total
+        
+        if self.contingency == 0:
+            self.contingency = calculated_contingency
+        
+        if self.labour_insurance == 0:
+            self.labour_insurance = calculated_labour_insurance
+        
+        if self.final_total == 0:
+            self.final_total = calculated_final_total
+            
         super().save(*args, **kwargs)
     
     def __str__(self):
