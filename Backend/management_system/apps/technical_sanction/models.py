@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from apps.works.models import Work
+from decimal import Decimal
 
 class TechnicalSanction(models.Model):
     work = models.ForeignKey(Work, on_delete=models.CASCADE, related_name='technical_sanctions')
@@ -48,7 +49,7 @@ class TechnicalSanction(models.Model):
     
     def calculate_gst(self):
         """Calculate GST on work_portion"""
-        return (self.work_portion * self.gst_percentage) / 100
+        return (self.work_portion * self.gst_percentage) / Decimal('100')
     
     def calculate_grand_total(self):
         """Calculate work_portion + royalty + testing + gst"""
@@ -56,11 +57,11 @@ class TechnicalSanction(models.Model):
     
     def calculate_contingency(self):
         """Calculate contingency on work_portion"""
-        return (self.work_portion * self.contingency_percentage) / 100
+        return (self.work_portion * self.contingency_percentage) / Decimal('100')
     
     def calculate_labour_insurance(self):
         """Calculate labour insurance on work_portion"""
-        return (self.work_portion * self.labour_insurance_percentage) / 100
+        return (self.work_portion * self.labour_insurance_percentage) / Decimal('100')
     
     def calculate_final_total(self):
         """Calculate final total including all costs"""
@@ -85,6 +86,15 @@ class TechnicalSanction(models.Model):
         if not self.order:
             self.order_date = None
         
+        # Ensure percentage fields have default values if None or empty
+        if self.gst_percentage is None or self.gst_percentage == 0:
+            self.gst_percentage = Decimal('18.00')
+        if self.contingency_percentage is None or self.tds_percentage == 0:
+            self.contingency_percentage = Decimal('4.00')
+        if self.labour_insurance_percentage is None or self.gst_on_workportion_percentage == 0:
+            self.labour_insurance_percentage = Decimal('1.00')
+        
+
         # Auto-calculate values if they haven't been manually set
         # We check if the field is 0 or matches the calculated value to auto-update
         calculated_work_portion_total = self.calculate_work_portion_total()

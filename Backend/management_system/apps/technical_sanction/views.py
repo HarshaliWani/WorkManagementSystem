@@ -1,3 +1,7 @@
-from django.shortcuts import render
+from rest_framework import viewsets
+from .models import TechnicalSanction
+from .serializers import TechnicalSanctionSerializer
 
-# Create your views here.
+class TechnicalSanctionViewSet(viewsets.ModelViewSet):
+    queryset = TechnicalSanction.objects.all()
+    serializer_class = TechnicalSanctionSerializer
