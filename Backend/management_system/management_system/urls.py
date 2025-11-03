@@ -10,6 +10,7 @@ from apps.bill.views import BillViewSet
 router = routers.DefaultRouter()
 router.register(r'grs', GRViewSet)
 router.register(r'works', WorkViewSet)
+router.register(r'spills', SpillViewSet) 
 router.register(r'technical-sanctions', TechnicalSanctionViewSet)
 router.register(r'tenders', TenderViewSet)
 router.register(r'bills', BillViewSet)

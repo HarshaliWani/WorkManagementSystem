@@ -183,3 +183,10 @@ python manage.py makemigrations
 python manage.py migrate
 python manage.py createsuperuser
 Your Django backend foundation is now ready! Next steps would be creating the models for GR, Works, Technical Sanction, Tender, and Bill with their relationships and constraints.
+
+
+
+
+Intermediary steps
+pip install django-cors-headers
+npm install axios
