@@ -1,45 +1,62 @@
-import axios from 'axios';
-import { Bill } from '../data/mockData';
-
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+import api from './api';
 
 export const billService = {
   // Get all bills
-  getAllBills: async (): Promise<Bill[]> => {
+  fetchAllBills: async () => {
     const response = await api.get('/bills/');
     return response.data;
   },
 
-  // Get bills by tender
-  getBillsByTender: async (tenderId: string): Promise<Bill[]> => {
+  // Get bill by ID
+  fetchBillById: async (id: string) => {
+    const response = await api.get(`/bills/${id}/`);
+    return response.data;
+  },
+
+  // ✅ NEW: Get all bills for a specific tender
+  fetchBillsByTender: async (tenderId: string) => {
     const response = await api.get(`/bills/?tender=${tenderId}`);
     return response.data;
   },
 
-  // Create bill
-  createBill: async (tenderId: string, billData: Partial<Bill>): Promise<Bill> => {
-    const response = await api.post('/bills/', {
-      tender_id: tenderId,
-      ...billData,
-    });
+  // Create new bill
+  createBill: async (billData: {
+    tender: number;
+    bill_number: string;
+    date?: string;
+    work_portion: number;
+    royalty_and_testing?: number;
+    reimbursement_of_insurance?: number;
+    security_deposit?: number;
+    insurance?: number;
+    royalty?: number;
+
+    //  percentage fields:
+    gst_percentage?: number;
+    tds_percentage?: number;
+    gst_on_workportion_percentage?: number;
+    lwc_percentage?: number;
+
+    //  override fields:
+    gst?: number;
+    bill_total?: number;
+    tds?: number;
+    gst_on_workportion?: number;
+    lwc?: number;
+    net_amount?: number;
+  }) => {
+    const response = await api.post('/bills/', billData);
     return response.data;
   },
 
   // Update bill
-  updateBill: async (id: string, billData: Partial<Bill>): Promise<Bill> => {
-    const response = await api.put(`/bills/${id}/`, billData);
+  updateBill: async (id: string, billData: any) => {
+    const response = await api.patch(`/bills/${id}/`, billData);
     return response.data;
   },
 
   // Delete bill
-  deleteBill: async (id: string): Promise<void> => {
+  deleteBill: async (id: string) => {
     await api.delete(`/bills/${id}/`);
   },
 };

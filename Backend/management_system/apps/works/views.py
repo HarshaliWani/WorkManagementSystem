@@ -1,36 +1,48 @@
 # apps/works/views.py
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework import viewsets
 from rest_framework.response import Response
+from decimal import Decimal
 from .models import Work, Spill
-from .serializers import SpillSerializer
+from .serializers import WorkSerializer, SpillSerializer
+
+
+class WorkViewSet(viewsets.ModelViewSet):
+    """ViewSet for Work CRUD operations"""
+    queryset = Work.objects.all()
+    serializer_class = WorkSerializer
+
+    def get_queryset(self):
+        """
+        FIX: Filter works by GR if 'gr' query parameter is provided
+        """
+        queryset = Work.objects.all().select_related('gr').prefetch_related('spills')
+        
+        # Get the 'gr' parameter from query string (?gr=1)
+        gr_id = self.request.query_params.get('gr', None)
+        
+        if gr_id is not None:
+            # Filter works by the specified GR ID
+            queryset = queryset.filter(gr_id=gr_id)
+        
+        return queryset.order_by('-created_at')
+
 
 class SpillViewSet(viewsets.ModelViewSet):
     queryset = Spill.objects.all()
     serializer_class = SpillSerializer
-    
-    def create(self, request, *args, **kwargs):
-        """Create a new spill for a work"""
-        work_id = request.data.get('work_id')
-        ara = request.data.get('ARA')
+
+    def get_queryset(self):
+        """
+        ✅ Filter spills by work if 'work' query parameter is provided
+        """
+        queryset = Spill.objects.all().select_related('work')
         
-        try:
-            work = Work.objects.get(id=work_id)
-            
-            # Validate that RA + total ARA < AA
-            total_ara = work.spills.aggregate(total=models.Sum('ARA'))['total'] or 0
-            if work.RA + total_ara + ara >= work.AA:
-                return Response(
-                    {'error': 'Cannot add spill: RA + ARA would exceed AA'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            spill = Spill.objects.create(work=work, ARA=ara)
-            serializer = self.get_serializer(spill)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-            
-        except Work.DoesNotExist:
-            return Response(
-                {'error': 'Work not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        # Get the 'work' parameter from query string (?work=1)
+        work_id = self.request.query_params.get('work', None)
+        
+        if work_id is not None:
+            # Filter spills by the specified Work ID
+            queryset = queryset.filter(work_id=work_id)
+        
+        return queryset.order_by('-created_at')
+   

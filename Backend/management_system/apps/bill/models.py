@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from apps.tender.models import Tender
 from decimal import Decimal
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Bill(models.Model):
     tender = models.ForeignKey(Tender, on_delete=models.CASCADE, related_name='bills')
@@ -11,20 +12,20 @@ class Bill(models.Model):
 
     work_portion = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     royalty_and_testing = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    gst_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=18.00)
+    gst_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=18.00, validators=[MinValueValidator(0), MaxValueValidator(100)])
     gst = models.DecimalField(max_digits=15, decimal_places=2, default=0, blank=True)
     reimbursement_of_insurance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     bill_total = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="Total", blank=True)
     
-    tds_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.00)
+    tds_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.00, validators=[MinValueValidator(0), MaxValueValidator(100)])
     tds = models.DecimalField(max_digits=15, decimal_places=2, default=0, blank=True)
     
-    gst_on_workportion_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.00)
+    gst_on_workportion_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=2.00, validators=[MinValueValidator(0), MaxValueValidator(100)])
     gst_on_workportion = models.DecimalField(max_digits=15, decimal_places=2, default=0, blank=True)
     
     security_deposit = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     
-    lwc_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=1.00)
+    lwc_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=1.00, validators=[MinValueValidator(0), MaxValueValidator(100)])
     lwc = models.DecimalField(max_digits=15, decimal_places=2, default=0, blank=True)
     
     insurance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
@@ -34,6 +35,14 @@ class Bill(models.Model):
         
     document = models.FileField(upload_to='bills/%Y/%m/%d/', null=True, blank=True)
     
+    # ✅ ADD: Override flags
+    override_gst = models.BooleanField(default=False)
+    override_bill_total = models.BooleanField(default=False)
+    override_tds = models.BooleanField(default=False)
+    override_gst_on_workportion = models.BooleanField(default=False)
+    override_lwc = models.BooleanField(default=False)
+    override_net_amount = models.BooleanField(default=False)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -106,18 +115,23 @@ class Bill(models.Model):
         else:
             self.lwc_percentage = Decimal(str(self.lwc_percentage))
         
-        # Auto-calculate fields if they are 0
-        if not self.gst or self.gst == 0:
+        # ✅ Calculate only non-overridden fields
+        if not self.override_gst:
             self.gst = self.calculate_gst()
-        if not self.bill_total or self.bill_total == 0:
+        
+        if not self.override_bill_total:
             self.bill_total = self.calculate_bill_total()
-        if not self.tds or self.tds == 0:
+        
+        if not self.override_tds:
             self.tds = self.calculate_tds()
-        if not self.gst_on_workportion or self.gst_on_workportion == 0:
+        
+        if not self.override_gst_on_workportion:
             self.gst_on_workportion = self.calculate_gst_on_workportion()
-        if not self.lwc or self.lwc == 0:
+        
+        if not self.override_lwc:
             self.lwc = self.calculate_lwc()
-        if not self.net_amount or self.net_amount == 0:
+        
+        if not self.override_net_amount:
             self.net_amount = self.calculate_net_amount()
             
         super().save(*args, **kwargs)

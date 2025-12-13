@@ -21,7 +21,7 @@ class Tender(models.Model):
     loa_date = models.DateField(null=True, blank=True)
 
     tender_id = models.CharField(max_length=100, unique=True)
-    date = models.DateField()
+    date = models.DateField(null=True, blank=True)
     agency_name = models.CharField(max_length=300)
     # Organize by date uploaded
     work_order = models.FileField(upload_to='work_orders/%Y/%m/%d/', null=True, blank=True)
@@ -37,6 +37,8 @@ class Tender(models.Model):
         """Auto-populate dates when checkboxes are checked"""
         today = timezone.now().date()
         
+        if not self.date:
+            self.date = today
         # If checkbox is checked and date is empty, auto-fill with today's date
         if self.online_offline and not self.online_offline_date:
             self.online_offline_date = today

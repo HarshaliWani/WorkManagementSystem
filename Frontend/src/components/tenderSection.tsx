@@ -1,51 +1,68 @@
+// tenderSection.tsx - CORRECTED VERSION
 import React, { useState, useEffect } from 'react';
-import { Plus, Save, X, Loader, Edit2, FileText } from 'lucide-react';
-import { Tender } from '../data/mockData';
+import { Plus, Save, X, Loader, Edit2, FileText, CheckCircle } from 'lucide-react';
 import { tenderService } from '../services/tenderService';
 
+// ✅ CORRECT Tender interface matching backend serializer
+interface Tender {
+  id: number;
+  // Backend GET response fields (camelCase)
+  tenderNumber: string;
+  tenderName: string;
+  openingDate?: string;
+  status?: string;
+  technicalSanctionId?: number | null;
+  workOrderUrl?: string | null;
+  onlineOffline?: boolean;
+  onlineOfflineDate?: string | null;
+  technicalVerification?: boolean;
+  technicalVerificationDate?: string | null;
+  financialVerification?: boolean;
+  financialVerificationDate?: string | null;
+  loa?: boolean;
+  loaDate?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 interface TenderSectionProps {
-  tsId?: string; // Technical Sanction ID
+  workId?: string;  // ✅ CHANGED: Tenders belong to Works, not Technical Sanctions
   isEditMode: boolean;
   onTenderSelect?: (tenderId: string) => void;
 }
 
 export const TenderSection: React.FC<TenderSectionProps> = ({
-  tsId,
+  workId,
   isEditMode,
   onTenderSelect,
 }) => {
   const [tenders, setTenders] = useState<Tender[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [editingTender, setEditingTender] = useState<Tender | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // ✅ CORRECT: Form data matching backend POST fields (snake_case)
   const [formData, setFormData] = useState({
-    tenderNumber: '',
-    tenderName: '',
-    estimatedAmount: '',
-    openingDate: '',
-    closingDate: '',
-    status: 'Open' as 'Open' | 'Closed' | 'Awarded',
-    contractorName: '',
-    awardedAmount: '',
-    workOrderNumber: '',
-    workOrderDate: '',
+    tender_id: '',
+    agency_name: '',
+    date: '',
   });
 
   useEffect(() => {
-    if (tsId) {
+    if (workId) {
       fetchTenders();
     }
-  }, [tsId]);
+  }, [workId]);
 
+  // ✅ FIXED: Use correct service method
   const fetchTenders = async () => {
     try {
       setLoading(true);
-      const data = tsId 
-        ? await tenderService.getTendersByTS(tsId)
-        : await tenderService.getAllTenders();
+      const data = workId
+        ? await tenderService.fetchTendersByWork(workId)  // ✅ CORRECT method exists
+        : await tenderService.fetchAllTenders();
       setTenders(data);
       setError(null);
     } catch (err) {
@@ -58,16 +75,9 @@ export const TenderSection: React.FC<TenderSectionProps> = ({
 
   const resetForm = () => {
     setFormData({
-      tenderNumber: '',
-      tenderName: '',
-      estimatedAmount: '',
-      openingDate: '',
-      closingDate: '',
-      status: 'Open',
-      contractorName: '',
-      awardedAmount: '',
-      workOrderNumber: '',
-      workOrderDate: '',
+      tender_id: '',
+      agency_name: '',
+      date: '',
     });
   };
 
@@ -77,26 +87,26 @@ export const TenderSection: React.FC<TenderSectionProps> = ({
     setIsAdding(true);
   };
 
+  // ✅ FIXED: Map backend fields correctly
   const handleEdit = (tender: Tender) => {
     setFormData({
-      tenderNumber: tender.tenderNumber,
-      tenderName: tender.tenderName || '',
-      estimatedAmount: tender.estimatedAmount?.toString() || '',
-      openingDate: tender.openingDate?.split('T')[0] || '',
-      closingDate: tender.closingDate?.split('T')[0] || '',
-      status: tender.status || 'Open',
-      contractorName: tender.contractorName || '',
-      awardedAmount: tender.awardedAmount?.toString() || '',
-      workOrderNumber: tender.workOrderNumber || '',
-      workOrderDate: tender.workOrderDate?.split('T')[0] || '',
+      tender_id: tender.tenderNumber,
+      agency_name: tender.tenderName || '',
+      date: tender.openingDate?.split('T')[0] || '',
     });
     setEditingTender(tender);
     setIsAdding(true);
   };
 
+  // ✅ FIXED: Correct save logic matching backend expectations
   const handleSave = async () => {
-    if (!formData.tenderNumber) {
-      setError('Tender number is required');
+    if (!formData.tender_id || !formData.agency_name) {
+      setError('Tender ID and agency name are required');
+      return;
+    }
+
+    if (!workId) {
+      setError('Work ID is required to create a tender');
       return;
     }
 
@@ -104,23 +114,18 @@ export const TenderSection: React.FC<TenderSectionProps> = ({
       setSaving(true);
       setError(null);
 
+      // ✅ CORRECT: Object matching backend serializer expectations
       const tenderData = {
-        tenderNumber: formData.tenderNumber,
-        tenderName: formData.tenderName,
-        estimatedAmount: parseFloat(formData.estimatedAmount) || 0,
-        openingDate: formData.openingDate,
-        closingDate: formData.closingDate,
-        status: formData.status,
-        contractorName: formData.contractorName,
-        awardedAmount: parseFloat(formData.awardedAmount) || 0,
-        workOrderNumber: formData.workOrderNumber,
-        workOrderDate: formData.workOrderDate,
+        tender_id: formData.tender_id,
+        agency_name: formData.agency_name,
+        date: formData.date || undefined,
+        work: parseInt(workId),  // ✅ Send work ID
       };
 
       if (editingTender) {
-        await tenderService.updateTender(editingTender.id || '', tenderData);
+        await tenderService.updateTender(editingTender.id.toString(), tenderData);
       } else {
-        await tenderService.createTender(tsId || '', tenderData);
+        await tenderService.createTender(tenderData);  // ✅ FIXED: Correct signature
       }
 
       await fetchTenders();
@@ -141,11 +146,7 @@ export const TenderSection: React.FC<TenderSectionProps> = ({
     setError(null);
   };
 
-  const formatCurrency = (amount: number): string => {
-    return `₹${amount.toLocaleString('en-IN')}`;
-  };
-
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status?: string) => {
     switch (status) {
       case 'Open': return 'text-blue-600 bg-blue-50';
       case 'Closed': return 'text-gray-600 bg-gray-50';
@@ -155,39 +156,60 @@ export const TenderSection: React.FC<TenderSectionProps> = ({
   };
 
   if (loading) {
-    return <div className="p-4 text-sm text-gray-600">Loading tenders...</div>;
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader className="w-6 h-6 animate-spin text-blue-500" />
+        <span className="ml-2 text-gray-600">Loading tenders...</span>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
+      {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
           {error}
         </div>
       )}
 
-      {/* Existing Tenders */}
+      {/* Empty State */}
       {tenders.length === 0 && !isAdding && (
-        <div className="text-sm text-gray-500 bg-gray-50 p-4 rounded text-center">
-          No tenders found. {isEditMode && 'Click "Add Tender" to create one.'}
+        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+          <FileText className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+          <p>No tenders found. {isEditMode && 'Click "Add Tender" to create one.'}</p>
         </div>
       )}
 
+      {/* Existing Tenders */}
       {tenders.map((tender) => (
-        <div key={tender.id} className="bg-white border border-gray-200 rounded-lg p-4">
+        <div
+          key={tender.id}
+          className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+        >
+          {/* Header */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1">
-              <div className="flex items-center space-x-2">
-                <FileText className="w-4 h-4 text-blue-600" />
-                <h5 className="font-semibold text-gray-900">{tender.tenderNumber}</h5>
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(tender.status)}`}>
-                  {tender.status}
-                </span>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {tender.tenderNumber}
+                </h3>
+                {tender.status && (
+                  <span
+                    className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                      tender.status
+                    )}`}
+                  >
+                    {tender.status}
+                  </span>
+                )}
               </div>
               {tender.tenderName && (
                 <p className="text-sm text-gray-600 mt-1">{tender.tenderName}</p>
               )}
             </div>
+
+            {/* Edit Button */}
             {isEditMode && (
               <button
                 onClick={() => handleEdit(tender)}
@@ -199,51 +221,96 @@ export const TenderSection: React.FC<TenderSectionProps> = ({
             )}
           </div>
 
+          {/* Details Grid */}
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <span className="text-gray-500">Estimated Amount:</span>
-              <span className="ml-2 font-semibold text-gray-900">
-                {formatCurrency(tender.estimatedAmount || 0)}
-              </span>
-            </div>
-            <div>
               <span className="text-gray-500">Opening Date:</span>
-              <span className="ml-2 text-gray-900">
+              <span className="ml-2 text-gray-900 font-medium">
                 {tender.openingDate ? new Date(tender.openingDate).toLocaleDateString() : '-'}
               </span>
             </div>
-            <div>
-              <span className="text-gray-500">Closing Date:</span>
-              <span className="ml-2 text-gray-900">
-                {tender.closingDate ? new Date(tender.closingDate).toLocaleDateString() : '-'}
-              </span>
-            </div>
-            {tender.status === 'Awarded' && tender.contractorName && (
-              <>
-                <div>
-                  <span className="text-gray-500">Contractor:</span>
-                  <span className="ml-2 text-gray-900">{tender.contractorName}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Awarded Amount:</span>
-                  <span className="ml-2 font-semibold text-green-600">
-                    {formatCurrency(tender.awardedAmount || 0)}
-                  </span>
-                </div>
-                {tender.workOrderNumber && (
-                  <div>
-                    <span className="text-gray-500">Work Order:</span>
-                    <span className="ml-2 text-gray-900">{tender.workOrderNumber}</span>
-                  </div>
-                )}
-              </>
+
+            {tender.technicalSanctionId && (
+              <div>
+                <span className="text-gray-500">TS ID:</span>
+                <span className="ml-2 text-gray-900 font-medium">
+                  {tender.technicalSanctionId}
+                </span>
+              </div>
             )}
           </div>
 
+          {/* Verification Status */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {tender.onlineOffline && (
+              <div className="flex items-center text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Online/Offline
+                {tender.onlineOfflineDate && (
+                  <span className="ml-1 text-green-600">
+                    ({new Date(tender.onlineOfflineDate).toLocaleDateString()})
+                  </span>
+                )}
+              </div>
+            )}
+
+            {tender.technicalVerification && (
+              <div className="flex items-center text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Technical Verification
+                {tender.technicalVerificationDate && (
+                  <span className="ml-1 text-green-600">
+                    ({new Date(tender.technicalVerificationDate).toLocaleDateString()})
+                  </span>
+                )}
+              </div>
+            )}
+
+            {tender.financialVerification && (
+              <div className="flex items-center text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Financial Verification
+                {tender.financialVerificationDate && (
+                  <span className="ml-1 text-green-600">
+                    ({new Date(tender.financialVerificationDate).toLocaleDateString()})
+                  </span>
+                )}
+              </div>
+            )}
+
+            {tender.loa && (
+              <div className="flex items-center text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                LOA
+                {tender.loaDate && (
+                  <span className="ml-1 text-green-600">
+                    ({new Date(tender.loaDate).toLocaleDateString()})
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Work Order Link */}
+          {tender.workOrderUrl && (
+            <div className="mt-3">
+              <a
+                href={tender.workOrderUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                <FileText className="w-4 h-4" />
+                View Work Order
+              </a>
+            </div>
+          )}
+
+          {/* View Bills Button */}
           {onTenderSelect && (
             <button
-              onClick={() => onTenderSelect(tender.id || '')}
-              className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium"
+              onClick={() => onTenderSelect(tender.id.toString())}
+              className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
             >
               View Bills →
             </button>
@@ -253,192 +320,80 @@ export const TenderSection: React.FC<TenderSectionProps> = ({
 
       {/* Add/Edit Form */}
       {isAdding && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h5 className="font-semibold text-gray-900 mb-4">
+        <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
+          <h3 className="text-lg font-semibold mb-4">
             {editingTender ? 'Edit Tender' : 'New Tender'}
-          </h5>
+          </h3>
 
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tender Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.tenderNumber}
-                  onChange={(e) => setFormData({ ...formData, tenderNumber: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., TND-2024-001"
-                  disabled={saving}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tender Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.tenderName}
-                  onChange={(e) => setFormData({ ...formData, tenderName: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Description"
-                  disabled={saving}
-                />
-              </div>
+            {/* Tender ID */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tender ID *
+              </label>
+              <input
+                type="text"
+                value={formData.tender_id}
+                onChange={(e) => setFormData({ ...formData, tender_id: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., TND-2024-001"
+                disabled={saving}
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Estimated Amount
-                </label>
-                <input
-                  type="number"
-                  value={formData.estimatedAmount}
-                  onChange={(e) => setFormData({ ...formData, estimatedAmount: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="0"
-                  disabled={saving}
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={saving}
-                >
-                  <option value="Open">Open</option>
-                  <option value="Closed">Closed</option>
-                  <option value="Awarded">Awarded</option>
-                </select>
-              </div>
+            {/* Agency Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Agency Name *
+              </label>
+              <input
+                type="text"
+                value={formData.agency_name}
+                onChange={(e) => setFormData({ ...formData, agency_name: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Contractor/Agency name"
+                disabled={saving}
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Opening Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.openingDate}
-                  onChange={(e) => setFormData({ ...formData, openingDate: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={saving}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Closing Date
-                </label>
-                <input
-                  type="date"
-                  value={formData.closingDate}
-                  onChange={(e) => setFormData({ ...formData, closingDate: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={saving}
-                />
-              </div>
+            {/* Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Opening Date
+              </label>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={saving}
+              />
             </div>
-
-            {formData.status === 'Awarded' && (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Contractor Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.contractorName}
-                      onChange={(e) => setFormData({ ...formData, contractorName: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Contractor name"
-                      disabled={saving}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Awarded Amount
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.awardedAmount}
-                      onChange={(e) => setFormData({ ...formData, awardedAmount: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="0"
-                      disabled={saving}
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Work Order Number
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.workOrderNumber}
-                      onChange={(e) => setFormData({ ...formData, workOrderNumber: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="WO-2024-001"
-                      disabled={saving}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Work Order Date
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.workOrderDate}
-                      onChange={(e) => setFormData({ ...formData, workOrderDate: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      disabled={saving}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
           </div>
 
-          <div className="flex justify-end space-x-2 mt-4">
+          {/* Action Buttons */}
+          <div className="flex gap-2 mt-4">
             <button
               onClick={handleCancel}
+              className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               disabled={saving}
-              className="flex items-center px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 disabled:opacity-50"
             >
-              <X className="w-3 h-3 mr-1" />
+              <X className="w-4 h-4 inline mr-1" />
               Cancel
             </button>
             <button
               onClick={handleSave}
-              disabled={saving || !formData.tenderNumber}
-              className="flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-300 flex items-center"
+              disabled={saving}
             >
               {saving ? (
                 <>
-                  <Loader className="w-3 h-3 mr-1 animate-spin" />
+                  <Loader className="w-4 h-4 mr-1 animate-spin" />
                   Saving...
                 </>
               ) : (
                 <>
-                  <Save className="w-3 h-3 mr-1" />
+                  <Save className="w-4 h-4 mr-1" />
                   {editingTender ? 'Update' : 'Save'} Tender
                 </>
               )}
@@ -451,9 +406,9 @@ export const TenderSection: React.FC<TenderSectionProps> = ({
       {isEditMode && !isAdding && (
         <button
           onClick={handleAdd}
-          className="flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 text-sm font-medium"
+          className="w-full py-3 text-sm font-medium text-blue-600 bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg hover:bg-blue-100 hover:border-blue-400 transition-colors flex items-center justify-center gap-2"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-5 h-5" />
           Add Tender
         </button>
       )}

@@ -1,41 +1,43 @@
-import axios from 'axios';
-import { Spill } from '../data/mockData';
-
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+import api from './api';
 
 export const spillService = {
-  // Create a new spill
-  createSpill: async (workId: string, ara: number): Promise<Spill> => {
-    const response = await api.post('/spills/', {
-      work_id: workId,
-      ARA: ara,
-    });
+  // Get all spills
+  fetchAllSpills: async () => {
+    const response = await api.get('/spills/');
+    return response.data;
+  },
+
+  // Get spill by ID
+  fetchSpillById: async (id: string) => {
+    const response = await api.get(`/spills/${id}/`);
+    return response.data;
+  },
+
+  // ✅ NEW: Get all spills for a specific work
+  fetchSpillsByWork: async (workId: string) => {
+    const response = await api.get(`/spills/?work=${workId}`);
+    return response.data;
+  },
+
+  // Create new spill
+  createSpill: async (spillData: { 
+    work_id: number;
+    ara: number;
+  }) => {
+    const response = await api.post('/spills/', spillData);
     return response.data;
   },
 
   // Update spill
-  updateSpill: async (id: string, ara: number): Promise<Spill> => {
-    const response = await api.patch(`/spills/${id}/`, {
-      ARA: ara,
-    });
+  updateSpill: async (id: string, spillData: { 
+    ara?: number; 
+  }) => {
+    const response = await api.patch(`/spills/${id}/`, spillData);
     return response.data;
   },
 
   // Delete spill
-  deleteSpill: async (id: string): Promise<void> => {
+  deleteSpill: async (id: string) => {
     await api.delete(`/spills/${id}/`);
-  },
-
-  // Get spills for a work
-  getSpillsByWork: async (workId: string): Promise<Spill[]> => {
-    const response = await api.get(`/spills/?work=${workId}`);
-    return response.data;
   },
 };

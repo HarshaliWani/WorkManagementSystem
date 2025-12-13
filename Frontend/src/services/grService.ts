@@ -1,64 +1,51 @@
-import axios from 'axios';
-import { GR, Work } from '../data/mockData';
-
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+import api from './api';
 
 export const grService = {
-  // Existing: Fetch all GRs
-  getAllGRs: async (): Promise<GR[]> => {
+  // Get all GRs
+  fetchAllGRs: async () => {
     const response = await api.get('/grs/');
     return response.data;
   },
 
-  // Existing: Fetch single GR
-  getGRById: async (id: number): Promise<GR> => {
+  // Get GR by ID
+  fetchGRById: async (id: string) => {
     const response = await api.get(`/grs/${id}/`);
     return response.data;
   },
 
-  // NEW: Create GR
-  createGR: async (grData: { grNumber: string; grDate: string }): Promise<GR> => {
-    const response = await api.post('/grs/', grData);
+  // ✅ NEW: Get all works for a specific GR
+  fetchWorksByGR: async (grId: string) => {
+    const response = await api.get(`/works/?gr=${grId}`);
     return response.data;
   },
 
-  // NEW: Update GR
-  updateGR: async (id: string, grData: Partial<GR>): Promise<GR> => {
-    const response = await api.put(`/grs/${id}/`, grData);
+    // ✅ NEW: Get GRs by Work ID
+  fetchGRsByWork: async (workId: string) => {
+    const response = await api.get(`/grs/?work=${workId}`);
     return response.data;
   },
 
-  // NEW: Delete GR
-  deleteGR: async (id: string): Promise<void> => {
-    await api.delete(`/grs/${id}/`);
-  },
-};
-
-export const workService = {
-  // Create Work
-  createWork: async (grId: string, workData: { workName: string; AA: number; RA: number }): Promise<Work> => {
-    const response = await api.post('/works/', {
-      gr_id: grId,
-      ...workData,
+  // Create new GR
+  createGR: async (formData: FormData) => {
+    const response = await api.post('/grs/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     });
     return response.data;
   },
 
-  // Update Work
-  updateWork: async (id: string, workData: Partial<Work>): Promise<Work> => {
-    const response = await api.put(`/works/${id}/`, workData);
+  updateGR: async (id: number, formData: FormData) => {
+    const response = await api.patch(`/grs/${id}/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
     return response.data;
   },
 
-  // Delete Work
-  deleteWork: async (id: string): Promise<void> => {
-    await api.delete(`/works/${id}/`);
+  // Delete GR
+  deleteGR: async (id: string) => {
+    await api.delete(`/grs/${id}/`);
   },
 };

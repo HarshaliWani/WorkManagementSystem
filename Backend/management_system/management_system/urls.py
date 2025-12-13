@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers
 from apps.gr.views import GRViewSet
-from apps.works.views import WorkViewSet
+from apps.works.views import SpillViewSet, WorkViewSet
 from apps.technical_sanction.views import TechnicalSanctionViewSet
 from apps.tender.views import TenderViewSet
 from apps.bill.views import BillViewSet

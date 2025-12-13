@@ -4,7 +4,8 @@ import { ArrowLeft, Construction } from 'lucide-react';
 interface PlaceholderPageProps {
   title: string;
   description: string;
-  onBack: () => void;
+  onBack?: () => void;
+  icon?: string;
 }
 
 export const PlaceholderPage: React.FC<PlaceholderPageProps> = ({

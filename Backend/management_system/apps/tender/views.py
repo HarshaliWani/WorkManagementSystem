@@ -8,17 +8,13 @@ class TenderViewSet(viewsets.ModelViewSet):
     serializer_class = TenderSerializer
     
     def create(self, request, *args, **kwargs):
-        """Create a new tender for a technical sanction"""
-        ts_id = request.data.get('technical_sanction_id')
-        
+        """Create a new tender"""
         try:
-            # Validate and create
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            
-            tender = serializer.save(technical_sanction_id=ts_id)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-            
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         except Exception as e:
             return Response(
                 {'error': str(e)},

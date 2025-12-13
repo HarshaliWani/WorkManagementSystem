@@ -1,10 +1,10 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { TechnicalSanctionSection } from '../components/TechnicalSanctionSection';
+import TechnicalSanctions from '../components/TechnicalSanctions';
 
 interface TechnicalSanctionPageProps {
   onBack: () => void;
-  isEditMode: boolean;
+  isEditMode?: boolean;
 }
 
 export const TechnicalSanctionPage: React.FC<TechnicalSanctionPageProps> = ({
@@ -26,7 +26,7 @@ export const TechnicalSanctionPage: React.FC<TechnicalSanctionPageProps> = ({
         Manage technical sanctions for all government works with detailed TS management capabilities.
       </p>
       
-      <TechnicalSanctionSection isEditMode={isEditMode} />
+      <TechnicalSanctions  />
     </div>
   );
 };
