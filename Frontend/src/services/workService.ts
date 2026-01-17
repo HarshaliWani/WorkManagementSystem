@@ -1,33 +1,40 @@
 import api from './api';
+import demoApi from './demoApi';
+
+const getApi = (isDemoMode: boolean) => isDemoMode ? demoApi : api;
 
 export const workService = {
   // Get all works
-  fetchAllWorks: async () => {
-    const response = await api.get('/works/');
+  fetchAllWorks: async (isDemoMode: boolean = false) => {
+    const apiInstance = getApi(isDemoMode);
+    const response = await apiInstance.get('/works/');
     return response.data;
   },
 
   // Get work by ID (includes spills in response)
-  fetchWorkById: async (id: string) => {
-    const response = await api.get(`/works/${id}/`);
+  fetchWorkById: async (id: string, isDemoMode: boolean = false) => {
+    const apiInstance = getApi(isDemoMode);
+    const response = await apiInstance.get(`/works/${id}/`);
     return response.data;
   },
 
   // Create new work
-  // ✅ NEW: Create work
-  createWork: async (workData: any) => {
-    const response = await api.post('/works/', workData);
+  createWork: async (workData: any, isDemoMode: boolean = false) => {
+    const apiInstance = getApi(isDemoMode);
+    const response = await apiInstance.post('/works/', workData);
     return response.data;
   },
 
-  // ✅ NEW: Update work
-  updateWork: async (id: number, workData: any) => {
-    const response = await api.patch(`/works/${id}/`, workData);
+  // Update work
+  updateWork: async (id: number, workData: any, isDemoMode: boolean = false) => {
+    const apiInstance = getApi(isDemoMode);
+    const response = await apiInstance.patch(`/works/${id}/`, workData);
     return response.data;
   },
 
-  // ✅ NEW: Delete work
-  deleteWork: async (id: number) => {
-    await api.delete(`/works/${id}/`);
+  // Delete work
+  deleteWork: async (id: number, isDemoMode: boolean = false) => {
+    const apiInstance = getApi(isDemoMode);
+    await apiInstance.delete(`/works/${id}/`);
   },
 };

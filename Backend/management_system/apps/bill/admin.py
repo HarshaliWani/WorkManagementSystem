@@ -10,7 +10,7 @@ class BillAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Bill Info', {
-            'fields': ('tender', 'bill_number', 'date', 'document')
+            'fields': ('tender', 'bill_number', 'date', 'payment_done_from_gr', 'document')
         }),
         ('Bill Calculations', {
             'fields': (
@@ -20,9 +20,9 @@ class BillAdmin(admin.ModelAdmin):
                 'reimbursement_of_insurance',
                 'bill_total',
             ),
-            'description': 'Total = Work Portion + Royalty and Testing + GST + Insurance'
+            'description': 'Bill Total = Work Portion + Royalty and Testing + GST (18% of work portion) + Reimbursement of Insurance'
         }),
-        ('Other Additions', {
+        ('Deductions', {
             'fields': (
                 ('tds_percentage', 'tds'),
                 ('gst_on_workportion_percentage', 'gst_on_workportion'),
@@ -31,11 +31,11 @@ class BillAdmin(admin.ModelAdmin):
                 'insurance',
                 'royalty',
             ),
-            'description': 'All fields are added to Net Amount'
+            'description': 'All fields are deducted from Bill Total to calculate Net Amount'
         }),
         ('Net Amount', {
             'fields': ('net_amount',),
-            'description': 'Net Amount = Sum of everything above'
+            'description': 'Net Amount = Bill Total - TDS - GST on Work Portion - Security Deposit - LWC - Insurance - Royalty'
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),

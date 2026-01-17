@@ -8,9 +8,9 @@ class SpillInline(admin.TabularInline):
 
 @admin.register(Work)
 class WorkAdmin(admin.ModelAdmin):
-    list_display = ('date','name_of_work', 'gr', 'aa', 'ra', 'created_at')
+    list_display = ('date','name_of_work', 'gr', 'aa', 'ra', 'is_cancelled', 'created_at')
     search_fields = ('name_of_work', 'gr__gr_number')
-    list_filter = ('created_at',)
+    list_filter = ('created_at', 'is_cancelled', 'cancel_reason')
     readonly_fields = ('total_ara', 'can_add_spill')
     inlines = [SpillInline]  # This shows spills on the Work page
     
@@ -21,6 +21,10 @@ class WorkAdmin(admin.ModelAdmin):
         }),
         ('Financial Details', {
             'fields': ('aa', 'ra')
+        }),
+        ('Cancellation Information', {
+            'fields': ('is_cancelled', 'cancel_reason', 'cancel_details'),
+            'classes': ('collapse',)
         }),
         ('Spill Information', {
             'fields': ('total_ara', 'can_add_spill'),

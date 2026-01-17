@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from apps.tender.models import Tender
+from apps.gr.models import GR
 from decimal import Decimal
 from django.core.validators import MinValueValidator, MaxValueValidator
 
@@ -9,6 +10,7 @@ class Bill(models.Model):
     
     bill_number = models.CharField(max_length=100)
     date = models.DateField(blank=True, null=True)
+    payment_done_from_gr = models.ForeignKey(GR, on_delete=models.SET_NULL, null=True, blank=True, related_name='bills_paid_from', verbose_name="Bill payment done from")
 
     work_portion = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     royalty_and_testing = models.DecimalField(max_digits=15, decimal_places=2, default=0)
@@ -33,7 +35,7 @@ class Bill(models.Model):
     
     net_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0, blank=True)
         
-    document = models.FileField(upload_to='bills/%Y/%m/%d/', null=True, blank=True)
+    document = models.FileField(upload_to='Bill documents/%Y/%m/', null=True, blank=True)
     
     # ✅ ADD: Override flags
     override_gst = models.BooleanField(default=False)
@@ -42,6 +44,8 @@ class Bill(models.Model):
     override_gst_on_workportion = models.BooleanField(default=False)
     override_lwc = models.BooleanField(default=False)
     override_net_amount = models.BooleanField(default=False)
+    
+    is_demo = models.BooleanField(default=False, verbose_name="Is Demo", help_text="Mark this record as demo data for testing")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -79,14 +83,35 @@ class Bill(models.Model):
         return ((work_portion + royalty_testing) * lwc_percentage) / Decimal('100')
     
     def calculate_net_amount(self):
+        # Use stored values if overridden, otherwise use calculated values
+        # Ensure all deduction values are positive (use abs to handle any negative values)
+        if self.override_tds:
+            tds = abs(Decimal(str(self.tds)))
+        else:
+            tds = self.calculate_tds()
+        
+        if self.override_gst_on_workportion:
+            gst_on_workportion = abs(Decimal(str(self.gst_on_workportion)))
+        else:
+            gst_on_workportion = self.calculate_gst_on_workportion()
+        
+        if self.override_lwc:
+            lwc = abs(Decimal(str(self.lwc)))
+        else:
+            lwc = self.calculate_lwc()
+        
+        security_deposit = abs(Decimal(str(self.security_deposit)))
+        insurance = abs(Decimal(str(self.insurance)))
+        royalty = abs(Decimal(str(self.royalty)))
+        
         return (
             self.calculate_bill_total()
-            + self.calculate_tds()
-            + self.calculate_gst_on_workportion()
-            + Decimal(str(self.security_deposit))
-            + self.calculate_lwc()
-            + Decimal(str(self.insurance))
-            + Decimal(str(self.royalty))
+            - tds
+            - gst_on_workportion
+            - security_deposit
+            - lwc
+            - insurance
+            - royalty
         )
     
     def save(self, *args, **kwargs):

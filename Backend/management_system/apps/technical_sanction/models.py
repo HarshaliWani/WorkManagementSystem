@@ -44,6 +44,7 @@ class TechnicalSanction(models.Model):
     order = models.BooleanField(default=False, verbose_name="Order")
     order_date = models.DateField(null=True, blank=True, verbose_name="Order Date")
     
+    is_demo = models.BooleanField(default=False, verbose_name="Is Demo", help_text="Mark this record as demo data for testing")
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

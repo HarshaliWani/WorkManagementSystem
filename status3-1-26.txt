@@ -1,0 +1,283 @@
+Technical Implementation Report
+Work Management System - Implementation Phase
+1. Project Overview
+A full-stack web application for managing government work projects, covering GRs, Works, Technical Sanctions, Tenders, and Bills.
+2. Technology Stack
+2.1 Frontend
+Framework: React 18.3.1
+Language: TypeScript 5.5.3
+Build tool: Vite 5.4.2
+Routing: React Router DOM 7.9.6
+HTTP client: Axios 1.13.1
+UI library: Lucide React 0.344.0
+Styling: Tailwind CSS 3.4.1
+Error handling: React Error Boundary 6.0.0
+2.2 Backend
+Framework: Django 5.2.7
+API: Django REST Framework 3.16.1
+Database: PostgreSQL (via psycopg2-binary 2.9.11)
+CORS: django-cors-headers 4.9.0
+Environment: python-dotenv 1.1.1
+Image processing: Pillow 12.0.0
+2.3 Development Tools
+Frontend: ESLint, PostCSS, Autoprefixer
+Backend: Django Admin, Django Migrations
+3. System Architecture
+3.1 Architecture Pattern
+Frontend-Backend separation
+RESTful API
+Component-based frontend
+3.2 Project Structure
+WorkManagementSystem1/├── Frontend/              # React + TypeScript application│   ├── src/│   │   ├── components/    # Reusable UI components│   │   ├── pages/         # Page components│   │   ├── services/      # API service layer│   │   ├── types/         # TypeScript interfaces│   │   └── utils/         # Utility functions│   └── package.json│└── Backend/               # Django REST API    └── management_system/        ├── apps/          # Django applications        │   ├── gr/       # Government Resolution module        │   ├── works/    # Work management module        │   ├── technical_sanction/  # Technical Sanction module        │   ├── tender/   # Tender management module        │   └── bill/     # Bill management module        └── management_system/  # Django project settings
+4. Database Models & Relationships
+4.1 Core Models
+GR (Government Resolution)
+Fields: gr_number, date, document (FileField)
+Relationships: One-to-Many with Works
+Features: Document upload with date-based organization
+Work
+Fields: name_of_work, date, aa (Administrative Approval), ra (Revised Approval)
+Relationships:
+ForeignKey to GR
+One-to-Many with Spills
+One-to-Many with Technical Sanctions
+Validation: RA + Total ARA ≤ AA
+Spill (ARA - Additional Revised Approval)
+Fields: ara (Additional Revised Approval)
+Relationships: ForeignKey to Work
+Validation: Prevents exceeding AA limit
+Technical Sanction
+Fields:
+Work portion: work_portion, royalty, testing, work_portion_total
+GST: gst_percentage (default 18%), gst
+Additional: consultancy, contingency_percentage (default 4%), contingency, labour_insurance_percentage (default 1%), labour_insurance
+Final: final_total
+Status: noting, noting_date, order, order_date
+Override flags for manual calculations
+Relationships: ForeignKey to Work
+Auto-calculations: Work portion total, GST, Grand total, Contingency, Labour insurance, Final total
+Tender
+Fields:
+Basic: tender_id, agency_name, date
+Stages: online, online_date, offline, offline_date, technical_verification, technical_verification_date, financial_verification, financial_verification_date, loa, loa_date
+Work order: work_order_tick, work_order_tick_date, work_order (FileField)
+EMD: emd_supporting, supporting_date, emd_awarded, awarded_date
+Relationships:
+ForeignKey to Work
+ForeignKey to Technical Sanction (required)
+Features: Auto-fill dates when checkboxes are checked
+Bill
+Fields:
+Bill info: bill_number, date, payment_done_from_gr, document (FileField)
+Bill total components: work_portion, royalty_and_testing, gst_percentage (default 18%), gst, reimbursement_of_insurance, bill_total
+Deductions: tds_percentage (default 2%), tds, gst_on_workportion_percentage (default 2%), gst_on_workportion, security_deposit, lwc_percentage (default 1%), lwc, insurance, royalty
+Final: net_amount
+Override flags for manual calculations
+Relationships:
+ForeignKey to Tender
+ForeignKey to GR (payment_done_from_gr)
+Auto-calculations: GST, Bill total, TDS, GST on work portion, LWC, Net amount
+4.2 Model Relationships Diagram
+GR (1) ──< (Many) Work (1) ──< (Many) Technical Sanction (1) ──< (Many) Tender (1) ──< (Many) Bill         │         └──< (Many) Spill (ARA)
+5. API Endpoints
+5.1 REST API Structure
+Base URL: http://localhost:8000/api
+Uses Django REST Framework ViewSets
+All endpoints support CRUD
+5.2 Available Endpoints
+Endpoint	Method	Description
+/api/grs/	GET, POST	List/Create GRs
+/api/grs/{id}/	GET, PUT, PATCH, DELETE	GR details
+/api/works/	GET, POST	List/Create Works
+/api/works/{id}/	GET, PUT, PATCH, DELETE	Work details
+/api/spills/	GET, POST	List/Create Spills
+/api/spills/{id}/	GET, PUT, PATCH, DELETE	Spill details
+/api/technical-sanctions/	GET, POST	List/Create Technical Sanctions
+/api/technical-sanctions/{id}/	GET, PUT, PATCH, DELETE	Technical Sanction details
+/api/tenders/	GET, POST	List/Create Tenders
+/api/tenders/{id}/	GET, PUT, PATCH, DELETE	Tender details
+/api/bills/	GET, POST	List/Create Bills
+/api/bills/{id}/	GET, PUT, PATCH, DELETE	Bill details
+5.3 API Features
+File upload support (MultiPartParser, FormParser)
+Filtering via query parameters
+CORS enabled for frontend
+JSON and form-data parsing
+6. Frontend Features
+6.1 Pages
+Dashboard (/dashboard)
+Statistics cards: Total GRs, Works, Tenders, Total RA, Total AA, Total Expenditure
+GR list with search and filters
+Works (/works)
+Work list with searchable GR filter
+Date range filtering
+Work creation/editing
+Spill management per work
+Technical Sanctions (/technical-sanctions)
+Grouped by work name
+Searchable filters (GR, Work, TS Sub Name)
+Expandable rows with details
+Status tracking (Noting, Order)
+Tenders (/tenders)
+Grouped by work name and TS sub name
+Searchable filters (GR, Work, Tender ID/Agency)
+Date range filtering
+Stage tracking with dates
+Work order document upload
+Bills (/bills)
+Grouped by work name
+Searchable filters (GR, Work, Bill Number, Status)
+Expandable rows with calculations
+Document upload
+Payment source tracking
+6.2 UI Components
+Searchable dropdowns: Custom dropdowns with search
+Expandable tables: Click to expand details
+Modal forms: Create/Edit modals
+File upload: PDF/document upload with preview
+Date pickers: Date input fields
+Status badges: Color-coded status indicators
+Currency formatting: Indian Rupee formatting (₹Cr, ₹L, ₹K)
+6.3 State Management
+React Hooks: useState, useEffect, useRef, useMemo
+Service layer: Centralized API calls
+Type safety: TypeScript interfaces
+7. Business Logic & Calculations
+7.1 Technical Sanction Calculations
+Work Portion Total = Work Portion + Royalty + Testing
+GST = (Work Portion × GST%) / 100
+Grand Total = Work Portion Total + GST
+Contingency = (Work Portion × Contingency%) / 100
+Labour Insurance = (Work Portion × Labour Insurance%) / 100
+Final Total = Work Portion Total + GST + Consultancy + Contingency + Labour Insurance
+7.2 Bill Calculations
+Bill Total = Work Portion + Royalty & Testing + GST (18% of work portion) + Reimbursement of Insurance
+Net Amount = Bill Total - TDS - GST on Work Portion - Security Deposit - LWC - Insurance - Royalty
+7.3 Validation Rules
+Work: RA + Total ARA ≤ AA
+Spill: Cannot exceed AA limit when added to existing RA + ARA
+Technical Sanction: All calculations auto-computed with override capability
+Bill: All calculations auto-computed with override capability
+8. File Management
+8.1 File Upload Structure
+GR Documents: gr_documents/YYYY/MM/filename.pdf
+Tender Work Orders: Tender work orders/YYYY/MM/filename.pdf
+Bill Documents: Bill documents/YYYY/MM/filename.pdf
+8.2 File Handling
+Django FileField with custom upload_to paths
+Month-based organization (not daily)
+Timestamp appended to prevent overwrites
+Media files served in development via Django static files
+9. Advanced Features
+9.1 Auto-fill Functionality
+Date auto-fill: When status checkboxes are checked, dates auto-populate
+Dropdown auto-fill: Selecting child entities auto-fills parent dropdowns
+Selecting TS Sub Name → auto-fills Work and GR
+Selecting Work → auto-fills GR
+Selecting Tender → auto-fills Work and GR
+9.2 Override System
+Manual override flags for calculated fields
+Allows manual entry while preserving auto-calculation
+Fields with override flags: GST, Bill Total, TDS, GST on Work Portion, LWC, Net Amount (Bills); Work Portion Total, GST, Grand Total, Contingency, Labour Insurance, Final Total (Technical Sanctions)
+9.3 Data Grouping & Sorting
+Technical Sanctions: Grouped by work name, sorted by latest work date
+Tenders: Grouped by work name and TS sub name, sorted by work date
+Bills: Grouped by work name, sorted by work date
+9.4 Search & Filtering
+Searchable dropdowns across modules
+Date range filtering
+Multi-criteria filtering (GR, Work, Status, etc.)
+Real-time search
+10. Security & Configuration
+10.1 Security
+CORS configured for frontend origin
+Environment variables for sensitive data (.env)
+Django secret key from environment
+PostgreSQL database connection
+10.2 Configuration
+Debug mode: Environment-based
+Allowed hosts: localhost, 127.0.0.1
+Media root: Configured for file uploads
+Static files: Configured for Django admin
+11. Database Migrations
+11.1 Migration Strategy
+Django migrations for schema changes
+Data migrations for field transformations
+Migration files for each app:
+GR: 4 migrations
+Works: 2 migrations
+Technical Sanction: 4 migrations
+Tender: 7 migrations
+Bill: 6 migrations
+11.2 Notable Migrations
+Field additions/removals
+Foreign key relationship changes
+File path updates
+Data migrations for existing records
+12. Code Quality & Best Practices
+12.1 Frontend
+TypeScript for type safety
+Component reusability
+Service layer separation
+Error handling with try-catch
+Loading states
+Responsive design with Tailwind CSS
+12.2 Backend
+Django best practices
+Model validation
+Serializer validation
+DRF ViewSets for CRUD
+Custom model methods for calculations
+Admin interface customization
+13. Testing & Development
+13.1 Development Environment
+Frontend: Vite dev server (port 5173)
+Backend: Django development server (port 8000)
+Database: PostgreSQL
+Hot reload: Enabled for both frontend and backend
+13.2 Code Organization
+Modular structure
+Separation of concerns
+Reusable components
+Centralized API configuration
+14. Key Implementation Highlights
+Full CRUD for all entities
+Complex calculations with override capability
+File upload with organized storage
+Searchable dropdowns
+Data grouping and sorting
+Auto-fill for dates and relationships
+Validation rules enforced
+Responsive UI
+Type-safe frontend with TypeScript
+RESTful API architecture
+15. Dependencies Summary
+Frontend Dependencies
+{  "react": "^18.3.1",  "react-dom": "^18.3.1",  "react-router-dom": "^7.9.6",  "axios": "^1.13.1",  "lucide-react": "^0.344.0",  "tailwindcss": "^3.4.1",  "typescript": "^5.5.3",  "vite": "^5.4.2"}
+Backend Dependencies
+Django==5.2.7djangorestframework==3.16.1django-cors-headers==4.9.0psycopg2-binary==2.9.11python-dotenv==1.1.1Pillow==12.0.0
+16. Current Status
+Completed Modules
+✅ GR Management
+✅ Work Management (with Spills/ARA)
+✅ Technical Sanction Management
+✅ Tender Management
+✅ Bill Management
+✅ Dashboard with Statistics
+✅ File Upload System
+✅ Search & Filtering
+✅ Data Grouping & Sorting
+System Capabilities
+Complete workflow from GR → Work → Technical Sanction → Tender → Bill
+Financial calculations with override capability
+Document management
+Status tracking with dates
+Comprehensive search and filtering
+Responsive user interface
+17. Technical Notes
+Decimal precision: All monetary values use DecimalField with 15 digits, 2 decimal places
+Date handling: Auto-population and validation
+File organization: Month-based structure for better organization
+API design: RESTful with proper HTTP methods
+Frontend architecture: Component-based with service layer
+Type safety: Full TypeScript implementation

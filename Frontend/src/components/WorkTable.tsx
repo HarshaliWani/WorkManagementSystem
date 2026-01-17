@@ -1,312 +1,318 @@
-// WorkTable.tsx - COMPLETE WITH DOUBLE-CLICK EDIT
+// src/components/WorkTable.tsx - Delete button removed from Actions column
+
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
-import { spillService } from '../services/spillService';
-import WorkFormModal from './WorkFormModal';
-import type { Work, GR } from '../types/work';
-import { Edit2, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { flushSync } from 'react-dom';
+import { ChevronDown, ChevronRight, Edit2, Plus } from 'lucide-react';
+import { Work } from '../types/work';
+import { ContextMenu } from './ContextMenu';
+import { useNavigationContext } from '../contexts/NavigationContext';
 
 interface WorkTableProps {
   works: Work[];
-  grs: GR[];  // ✅ ADD: Pass GRs for the form modal
-  isEditMode: boolean;
+  onEdit: (work: Work) => void;
   onUpdate: () => void;
-  onEditWork: (work: Work) => void;
-  onDelete: (workId: number) => void;        // ✅ NEW
-  onDeleteSpill: (spillId: number) => void;
+  onDeleteSpill: (workId: number, spillId: number) => Promise<void>;
+  onAddSpill: (workId: number, spillAmount: string) => Promise<void>;
+  isEditMode: boolean;
+  grs?: { id: number; grNumber: string }[];
 }
 
-const WorkTable: React.FC<WorkTableProps> = ({ works, grs, isEditMode, onUpdate, onEditWork, onDelete,
-  onDeleteSpill }) => {
-  const [visibleSpills, setVisibleSpills] = useState<Set<number>>(new Set());
-  const [spillData, setSpillData] = useState<{ [key: number]: any[] }>({});
+const WorkTable: React.FC<WorkTableProps> = ({
+  works,
+  onEdit,
+  onUpdate,
+  grs,
+  onDeleteSpill,
+  onAddSpill,
+  isEditMode,
+}) => {
+  const navigate = useNavigate();
+  const { setNavigationPath, updateFilters } = useNavigationContext();
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [newSpillData, setNewSpillData] = useState<{ [key: number]: string }>({});
+  
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; work: Work } | null>(null);
 
-  // ✅ State for editing work
-  const [editingWork, setEditingWork] = useState<Work | null>(null);
-  const [showWorkModal, setShowWorkModal] = useState(false);
-
-  const toggleSpillsVisibility = async (workId: number) => {
-    const newVisibleSpills = new Set(visibleSpills);
-
-    if (newVisibleSpills.has(workId)) {
-      newVisibleSpills.delete(workId);
+  const toggleRow = (id: number) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
     } else {
-      newVisibleSpills.add(workId);
+      newExpanded.add(id);
+    }
+    setExpandedRows(newExpanded);
+  };
 
-      if (!spillData[workId]) {
-        try {
-          const spills = await spillService.fetchSpillsByWork(workId.toString());
-          setSpillData(prev => ({ ...prev, [workId]: spills }));
-        } catch (error) {
-          console.error('Error fetching spills:', error);
-        }
-      }
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  const calculateTotalRA = (work: Work) => {
+    if (!work.spills || work.spills.length === 0) {
+      return Number(work.RA);
     }
 
-    setVisibleSpills(newVisibleSpills);
+    return work.spills.reduce(
+      (sum, spill) => sum + Number(spill.ARA),
+      Number(work.RA)
+    );
+    // return work.spills.reduce((sum, spill) => sum + Number(spill.ARA) + Number(work.RA), 0);
+  };
+
+  const calculateBalance = (work: Work) => {
+    const totalRA = calculateTotalRA(work);
+    return Number(work.AA) - totalRA;
   };
 
   const handleAddSpill = async (workId: number) => {
-    const araValue = newSpillData[workId];
-
-    if (!araValue || isNaN(Number(araValue))) {
-      alert('Please enter a valid ARA amount');
+    const amount = newSpillData[workId];
+    if (!amount || amount.trim() === '') {
+      alert('Please enter a spill amount');
       return;
     }
 
     try {
-      await spillService.createSpill({
-        work_id: workId,
-        ara: parseFloat(araValue)
-      });
-
-      setNewSpillData(prev => ({ ...prev, [workId]: '' }));
-
-      const updatedSpills = await spillService.fetchSpillsByWork(workId.toString());
-      setSpillData(prev => ({ ...prev, [workId]: updatedSpills }));
-
-      onUpdate();
+      await onAddSpill(workId, amount);
+      setNewSpillData({ ...newSpillData, [workId]: '' });
     } catch (error) {
       console.error('Error adding spill:', error);
-      alert('Failed to add spill');
     }
   };
 
-  const calculateTotalRA = (work: Work): number => {
-    const ra = Number(work.RA) || 0;
-    const spills = spillData[work.id] || [];
-    const totalSpills = spills.reduce((sum, spill) => sum + (Number(spill.ARA) || 0), 0);
-    return ra + totalSpills;
+  // Handle right-click on Work row
+  const handleContextMenu = (e: React.MouseEvent, work: Work) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY, work });
   };
 
-  const calculateBalance = (work: Work): number => {
-    const aa = Number(work.AA) || 0;
-    const totalRA = calculateTotalRA(work);
-    return aa - totalRA;
+  // Handle "View Technical Sanctions" navigation
+  const handleViewTechnicalSanctions = (work: Work) => {
+    const grId = work.gr;
+    // Use flushSync to prevent race conditions
+    flushSync(() => {
+      updateFilters({ 
+        gr_id: grId, 
+        work_id: work.id, 
+        technical_sanction_id: null, 
+        tender_id: null 
+      });
+    });
+    // Navigate with query parameters - NavigationUrlSync will sync path and filters from URL
+    // ContextMenu component will handle closing the menu after onClick completes
+    navigate(`/technical-sanctions?gr=${grId}&work=${work.id}`);
   };
 
-  const formatCurrency = (amount: number): string => {
-    return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  // ✅ Handle double-click to edit
-  const handleRowDoubleClick = (work: Work, event: React.MouseEvent) => {
-    if ((event.target as HTMLElement).closest('button')) {
-      return;
-    }
-
-    if (isEditMode) {
-      console.log('Work data:', work);  // ✅ Check what gr field contains
-      console.log('GR value:', work.gr);
-      setEditingWork(work);
-      setShowWorkModal(true);
-    }
-  };
+  if (works.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow p-8 text-center">
+        <p className="text-gray-500">No works found</p>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Work Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  AA
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  RA
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total RA
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Balance
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {works.map((work) => (
-                <React.Fragment key={work.id}>
-                  {/* ✅ Main Work Row - click to edit */}
-                  <tr key={work.id} className='hover: bg-gray-50'>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {work.workName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(Number(work.AA) || 0)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(Number(work.RA) || 0)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(calculateTotalRA(work))}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+    <div className="bg-white rounded-lg shadow overflow-hidden">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Work Name
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Work Date
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              AA
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Total RA
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Balance
+            </th>
+            {isEditMode && (
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            )}
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {works.map((work) => {
+            const balance = calculateBalance(work);
+            const isExpanded = expandedRows.has(work.id);
+
+            return (
+              <React.Fragment key={work.id}>
+                {/* Main Row */}
+                <tr 
+                  className={`hover:bg-gray-50 cursor-pointer ${work.isCancelled ? 'bg-gray-50 opacity-75' : ''}`} 
+                  onClick={() => toggleRow(work.id)}
+                  onContextMenu={(e) => handleContextMenu(e, work)}
+                  title={work.isCancelled && work.cancelReason ? `Cancelled: ${work.cancelReason === 'SHIFTED_TO_OTHER_WORK' ? 'Work shifted to another work' : 'Work assigned to different department'}` : undefined}
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {isExpanded ? (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex items-center gap-2">
+                      <span className={work.isCancelled ? 'text-gray-500' : 'text-gray-900'}>
+                        {work.workName}
+                      </span>
+                      {work.isCancelled && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                          Cancelled
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${work.isCancelled ? 'text-gray-500' : 'text-gray-700'}`}>
+                    {work.workDate}
+                  </td>
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${work.isCancelled ? 'text-gray-500' : 'text-blue-900'}`}>
+                    {formatCurrency(Number(work.AA) || 0)}
+                  </td>
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${work.isCancelled ? 'text-gray-500' : 'text-green-900'}`}>
+                    {formatCurrency(calculateTotalRA(work))}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <span
+                      className={`font-bold ${work.isCancelled ? 'text-gray-500' : balance >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                    >
                       {formatCurrency(calculateBalance(work))}
+                    </span>
+                  </td>
+                  {isEditMode && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(work);
+                        }}
+                        className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                        title="Edit Work"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleSpillsVisibility(work.id);
-                          }}
-                          className="text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors"
-                          title="View/Hide Spills"
-                        >
-                          {visibleSpills.has(work.id) ? 'Hide Spills' : 'View Spills'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                  )}
+                </tr>
 
-                  {/* Spills Section */}
-                  {
-                    visibleSpills.has(work.id) && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-4 bg-gray-50">
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-semibold text-gray-900 mb-3">
-                                Spills for {work.workName}
-                              </h4>
-                              {isEditMode && (
-                                <div className="flex items-center gap-3">
-                                  <button
-                                    onClick={() => onEditWork(work)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                                  >
-                                    <Edit2 className="w-4 h-4" />
-                                    <span>Edit Work</span>
-                                  </button>
+                {/* Expanded Spills Row */}
+                {isExpanded && (
+                  <tr>
+                    <td colSpan={isEditMode ? 7 : 6} className="px-6 py-4 bg-gray-50">
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900">
+                          Spills for {work.workName}
+                        </h4>
 
+                        {work.spills && work.spills.length > 0 ? (
+                          <div className="space-y-2">
+                            {work.spills.map((spill) => (
+                              <div
+                                key={spill.id}
+                                className="flex items-center justify-between bg-white p-3 rounded-md border border-gray-200"
+                              >
+                                <div>
+                                  <p className="text-sm text-gray-600">ARA Amount</p>
+                                  <p className="text-lg font-semibold text-gray-900">
+                                    {formatCurrency(Number(spill.ARA))}
+                                  </p>
+                                </div>
+                                {isEditMode && (
                                   <button
-                                    onClick={() => onDelete(work.id)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                                    onClick={() => onDeleteSpill(work.id, spill.id)}
+                                    className="text-red-600 hover:text-red-900 text-sm px-3 py-1 rounded hover:bg-red-50"
                                   >
-                                    <Trash2 className="w-4 h-4" />
-                                    <span>Delete Work</span>
+                                    Delete
                                   </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-sm">
+                            {isEditMode && 'No spills added yet'}
+                          </p>
+                        )}
+
+                        {/* Add Spill (Edit Mode Only) */}
+                        {isEditMode && (
+                          <div className="flex items-center gap-2 pt-4 border-t border-gray-200">
+                            <input
+                              type="number"
+                              placeholder="Enter spill amount..."
+                              value={newSpillData[work.id] || ''}
+                              onChange={(e) =>
+                                setNewSpillData((prev) => ({
+                                  ...prev,
+                                  [work.id]: e.target.value,
+                                }))
+                              }
+                              disabled={work.isCancelled}
+                              className={`flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${work.isCancelled ? 'bg-gray-100 cursor-not-allowed opacity-50' : ''}`}
+                            />
+                            <div className="relative group">
+                              <button
+                                onClick={() => handleAddSpill(work.id)}
+                                disabled={work.isCancelled}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+                                  work.isCancelled 
+                                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                                    : 'bg-green-600 text-white hover:bg-green-700'
+                                }`}
+                                title={work.isCancelled ? 'This work has been cancelled. Create a new work for further processing.' : 'Add Spill'}
+                              >
+                                <Plus className="w-4 h-4" />
+                                Add Spill
+                              </button>
+                              {work.isCancelled && (
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                  This work has been cancelled. Create a new work for further processing.
+                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
                                 </div>
                               )}
                             </div>
-
-                            {/* Spills Table */}
-                            {spillData[work.id] && spillData[work.id].length > 0 ? (
-                              <table className="min-w-full divide-y divide-gray-300 mb-4">
-                                <thead className="bg-gray-100">
-                                  <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">
-                                      Spill ID
-                                    </th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">
-                                      ARA Amount
-                                    </th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">
-                                      Created At
-                                    </th>
-                                    {isEditMode && (  // ✅ NEW: Actions column in edit mode
-                                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                        Actions
-                                      </th>
-                                    )}
-                                  </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                  {spillData[work.id].map((spill: any) => (
-                                    <tr key={spill.id}>
-                                      <td className="px-4 py-2 text-sm text-gray-900">{spill.id}</td>
-                                      <td className="px-4 py-2 text-sm text-gray-900">
-                                        {formatCurrency(Number(spill.ARA) || 0)}
-                                      </td>
-                                      <td className="px-4 py-2 text-sm text-gray-500">
-                                        {new Date(spill.created_at).toLocaleDateString()}
-                                      </td>
-                                      {isEditMode && (
-                                        <td className="px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                          <button
-                                            onClick={() => onDeleteSpill(spill.id)}
-                                            className="text-red-600 hover:text-red-900 transition-colors"
-                                            title="Delete Spill"
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </button>
-                                        </td>
-                                      )}
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            ) : (
-                              <p className="text-sm text-gray-500 mb-4">No spills added yet</p>
-                            )}
-
-                            {/* Add Spill (Edit Mode Only) */}
-                            {isEditMode && (
-                              <div className="flex items-center space-x-2 mt-3">
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  placeholder="Enter ARA amount"
-                                  value={newSpillData[work.id] || ''}
-                                  onChange={(e) =>
-                                    setNewSpillData(prev => ({
-                                      ...prev,
-                                      [work.id]: e.target.value
-                                    }))
-                                  }
-                                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                <button
-                                  onClick={() => handleAddSpill(work.id)}
-                                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                                >
-                                  <Plus className="w-4 h-4" />
-                                  <span>Add Spill</span>
-                                </button>
-                              </div>
-                            )}
                           </div>
-                        </td>
-                      </tr>
-                    )
-                  }
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
 
-        {works.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No works found</p>
-          </div>
-        )}
-      </div >
-
-      {/* ✅ Work Edit Modal */}
-      < WorkFormModal
-        isOpen={showWorkModal}
-        onClose={() => {
-          setShowWorkModal(false);
-          setEditingWork(null);
-        }}
-        onSuccess={() => {
-          setShowWorkModal(false);
-          setEditingWork(null);
-          onUpdate();
-        }}
-        grs={grs}
-        editingWork={editingWork}
-      />
-    </>
+      {/* Context Menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              label: 'View Technical Sanctions',
+              onClick: () => handleViewTechnicalSanctions(contextMenu.work),
+            },
+          ]}
+        />
+      )}
+    </div>
   );
 };
 

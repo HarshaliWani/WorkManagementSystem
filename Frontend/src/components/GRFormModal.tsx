@@ -1,8 +1,9 @@
-// GRFormModal.tsx - UPDATED WITH FILE UPLOAD
+// GRFormModal.tsx - COMPLETE FIXED VERSION
 import React, { useState, useEffect } from 'react';
-import { X, Upload } from 'lucide-react';
+import { Upload, Trash2, AlertCircle } from 'lucide-react';
 import { Modal } from './Modal';
 import { grService } from '../services/grService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface GRFormModalProps {
   isOpen: boolean;
@@ -17,13 +18,16 @@ export const GRFormModal: React.FC<GRFormModalProps> = ({
   onSuccess,
   editingGR = null
 }) => {
+  const { isDemoMode } = useAuth();
   const [formData, setFormData] = useState({
     grNumber: '',
     grDate: ''
   });
-  const [file, setFile] = useState<File | null>(null);  // ✅ NEW: File state
+  const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (editingGR) {
@@ -36,15 +40,16 @@ export const GRFormModal: React.FC<GRFormModalProps> = ({
         grNumber: '',
         grDate: ''
       });
-      setFile(null);  // ✅ Reset file
+      setFile(null);
     }
     setError(null);
+    setShowDeleteConfirm(false);
   }, [editingGR, isOpen]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      // Validate file type
+      
       if (selectedFile.type === 'application/pdf') {
         setFile(selectedFile);
         setError(null);
@@ -61,132 +66,218 @@ export const GRFormModal: React.FC<GRFormModalProps> = ({
     setError(null);
 
     try {
-      // ✅ Create FormData for file upload
       const submitData = new FormData();
       submitData.append('gr_number', formData.grNumber);
-      submitData.append('gr_date', formData.grDate);
+      submitData.append('date', formData.grDate);
       
       if (file) {
         submitData.append('document', file);
       }
 
       if (editingGR) {
-        await grService.updateGR(editingGR.id, submitData);
+        await grService.updateGR(editingGR.id, submitData, isDemoMode);
       } else {
-        await grService.createGR(submitData);
+        await grService.createGR(submitData, isDemoMode);
       }
 
       onSuccess();
     } catch (err: any) {
       console.error('Error saving GR:', err);
-      setError(err.response?.data?.error || 'Failed to save GR');
+      
+      if (err.response?.data) {
+        const errorData = err.response.data;
+        
+        if (errorData.gr_number) {
+          setError(Array.isArray(errorData.gr_number) ? errorData.gr_number[0] : errorData.gr_number);
+        } else if (errorData.error) {
+          setError(errorData.error);
+        } else if (errorData.detail) {
+          setError(errorData.detail);
+        } else {
+          setError('Failed to save GR. Please check your input and try again.');
+        }
+      } else {
+        setError('Network error. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDelete = async () => {
+    if (!editingGR) return;
+    
+    setDeleting(true);
+    setError(null);
+
+    try {
+      await grService.deleteGR(editingGR.id.toString(), isDemoMode);
+      onSuccess();
+    } catch (err: any) {
+      console.error('Error deleting GR:', err);
+      
+      if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else if (err.response?.status === 404) {
+        setError('GR not found. It may have been already deleted.');
+      } else {
+        setError('Failed to delete GR. It may have associated works.');
+      }
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
-    <>
-      {!isOpen ? null : (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {editingGR ? 'Edit GR' : 'Add New GR'}
-              </h2>
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose}
+      title={editingGR ? 'Edit GR' : 'Add New GR'}
+    >
+      {/* Form Content */}
+      <form onSubmit={handleSubmit} className="px-6 py-4">
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-start space-x-2">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* GR Number */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            GR Number *
+          </label>
+          <input
+            type="text"
+            value={formData.grNumber}
+            onChange={(e) => setFormData({ ...formData, grNumber: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+            placeholder="e.g., GR/2025/001"
+            disabled={loading || deleting}
+          />
+        </div>
+
+        {/* GR Date */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            GR Date *
+          </label>
+          <input
+            type="date"
+            value={formData.grDate}
+            onChange={(e) => setFormData({ ...formData, grDate: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+            disabled={loading || deleting}
+          />
+        </div>
+
+        {/* File Upload */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            GR Document (PDF)
+          </label>
+          <div className="relative">
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={handleFileChange}
+              className="hidden"
+              id="gr-file-upload"
+              disabled={loading || deleting}
+            />
+            <label
+              htmlFor="gr-file-upload"
+              className="flex items-center justify-center space-x-2 w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-blue-400 transition-colors"
+            >
+              <Upload className="w-5 h-5 text-gray-400" />
+              <span className="text-sm text-gray-600">
+                {file ? file.name : editingGR?.document ? 'Replace PDF file' : 'Choose PDF file'}
+              </span>
+            </label>
+          </div>
+          {file && (
+            <p className="mt-2 text-xs text-green-600">
+              ✓ File selected: {(file.size / 1024).toFixed(1)} KB
+            </p>
+          )}
+          {editingGR?.document && !file && (
+            <p className="mt-2 text-xs text-blue-600">
+              Current: {editingGR.document.split('/').pop()}
+            </p>
+          )}
+        </div>
+
+        {/* Delete Confirmation */}
+        {showDeleteConfirm && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-800 mb-3">
+              Are you sure you want to delete this GR? This action cannot be undone.
+            </p>
+            <div className="flex space-x-2">
               <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm"
               >
-                <X className="w-5 h-5" />
+                {deleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
+              >
+                Cancel
               </button>
             </div>
+          </div>
+        )}
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
-                  {error}
-                </div>
-              )}
+        {/* Buttons */}
+        <div className="flex items-center justify-between space-x-3 pt-4 border-t border-gray-200">
+          {/* Delete Button (Only in Edit Mode) */}
+          {editingGR && !showDeleteConfirm ? (
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={loading || deleting}
+              className="flex items-center space-x-1 px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Delete</span>
+            </button>
+          ) : (
+            <div></div>
+          )}
 
-              {/* GR Number */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  GR Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.grNumber}
-                  onChange={(e) => setFormData({ ...formData, grNumber: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                  placeholder="e.g., 125GRQ"
-                />
-              </div>
-
-              {/* GR Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  GR Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={formData.grDate}
-                  onChange={(e) => setFormData({ ...formData, grDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              {/* ✅ NEW: File Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  GR Document (PDF)
-                </label>
-                <div className="flex items-center space-x-2">
-                  <label className="flex-1 flex items-center justify-center px-4 py-2 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-blue-500 transition-colors">
-                    <Upload className="w-4 h-4 mr-2 text-gray-500" />
-                    <span className="text-sm text-gray-600">
-                      {file ? file.name : 'Choose PDF file'}
-                    </span>
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-                {file && (
-                  <p className="text-xs text-green-600 mt-1">
-                    ✓ File selected: {(file.size / 1024).toFixed(1)} KB
-                  </p>
-                )}
-              </div>
-
-              {/* Buttons */}
-              <div className="flex items-center justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
-                >
-                  {loading ? 'Saving...' : editingGR ? 'Update GR' : 'Create GR'}
-                </button>
-              </div>
-            </form>
+          {/* Cancel & Save Buttons */}
+          <div className="flex space-x-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading || deleting}
+              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading || deleting || showDeleteConfirm}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Saving...' : editingGR ? 'Update GR' : 'Create GR'}
+            </button>
           </div>
         </div>
-      )}
-    </>
+      </form>
+    </Modal>
   );
 };

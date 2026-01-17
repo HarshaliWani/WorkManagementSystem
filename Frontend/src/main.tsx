@@ -1,4 +1,3 @@
-import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
@@ -13,10 +12,10 @@ function ErrorFallback({error}: {error: Error}) {
   );
 }
 
+// React.StrictMode removed for production to eliminate dev warnings
+// StrictMode causes double-renders and extra warnings that are only useful in development
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary FallbackComponent={ErrorFallback}>
-  <StrictMode>
     <App />
-  </StrictMode>
   </ErrorBoundary>
 );

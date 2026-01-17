@@ -6,11 +6,20 @@ from django.core.exceptions import ValidationError
 from decimal import Decimal
 
 class Work(models.Model):
+    CANCEL_REASON_CHOICES = [
+        ('SHIFTED_TO_OTHER_WORK', 'Work shifted to another work'),
+        ('MOVED_TO_OTHER_DEPARTMENT', 'Work assigned to different department'),
+    ]
+    
     gr = models.ForeignKey(GR, on_delete=models.CASCADE, related_name='works')
     date = models.DateField(blank=True, null=True)
     name_of_work = models.CharField(max_length=500)
     aa = models.DecimalField(max_digits=15, decimal_places=2, help_text="Administrative Approval")
     ra = models.DecimalField(max_digits=15, decimal_places=2, default=0, help_text="Revised Approval")
+    is_demo = models.BooleanField(default=False, verbose_name="Is Demo", help_text="Mark this record as demo data for testing")
+    is_cancelled = models.BooleanField(default=False, verbose_name="Is Cancelled", help_text="Mark this work as cancelled")
+    cancel_reason = models.CharField(max_length=50, choices=CANCEL_REASON_CHOICES, blank=True, null=True, help_text="Reason for cancellation")
+    cancel_details = models.TextField(blank=True, null=True, help_text="Additional details about cancellation (e.g., new work name, new department name, or any explanation)")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -39,6 +48,7 @@ class Work(models.Model):
 class Spill(models.Model):
     work = models.ForeignKey(Work, on_delete=models.CASCADE, related_name='spills')
     ara = models.DecimalField(max_digits=15, decimal_places=2, help_text="Additional Revised Approval")
+    is_demo = models.BooleanField(default=False, verbose_name="Is Demo", help_text="Mark this record as demo data for testing")
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

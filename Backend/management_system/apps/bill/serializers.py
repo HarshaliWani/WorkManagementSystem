@@ -2,13 +2,21 @@
 from rest_framework import serializers
 from .models import Bill
 from apps.tender.models import Tender
+from apps.gr.models import GR
 
 
 class BillSerializer(serializers.ModelSerializer):
     # For reads
     tenderId = serializers.IntegerField(source='tender.id', read_only=True)
+    tenderNumber = serializers.CharField(source='tender.tender_id', read_only=True)
+    agencyName = serializers.CharField(source='tender.agency_name', read_only=True)
     workId = serializers.IntegerField(source='tender.work.id', read_only=True)
     workName = serializers.CharField(source='tender.work.name_of_work', read_only=True)
+    workDate = serializers.DateField(source='tender.work.date', read_only=True)
+    # Work cancellation status
+    work_is_cancelled = serializers.BooleanField(source='tender.work.is_cancelled', read_only=True)
+    work_cancel_reason = serializers.CharField(source='tender.work.cancel_reason', read_only=True, allow_null=True)
+    work_cancel_details = serializers.CharField(source='tender.work.cancel_details', read_only=True, allow_null=True)
     billNumber = serializers.CharField(source='bill_number', read_only=True)
     billDate = serializers.DateField(source='date', read_only=True)
     workPortion = serializers.DecimalField(source='work_portion', max_digits=15, decimal_places=2, read_only=True)
@@ -28,6 +36,8 @@ class BillSerializer(serializers.ModelSerializer):
     Royalty = serializers.DecimalField(source='royalty', max_digits=15, decimal_places=2, read_only=True)
     netAmount = serializers.DecimalField(source='net_amount', max_digits=15, decimal_places=2, read_only=True)
     documentUrl = serializers.FileField(source='document', read_only=True)
+    paymentDoneFromGrId = serializers.IntegerField(source='payment_done_from_gr.id', read_only=True, allow_null=True)
+    paymentDoneFromGrNumber = serializers.CharField(source='payment_done_from_gr.gr_number', read_only=True, allow_null=True)
 
     
     # For writes
@@ -49,7 +59,13 @@ class BillSerializer(serializers.ModelSerializer):
     tds_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, write_only=True)
     gst_on_workportion_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, write_only=True)
     lwc_percentage = serializers.DecimalField(max_digits=5, decimal_places=2, write_only=True)
-    document = serializers.FileField(write_only=True, required=False, allow_null=True)   
+    document = serializers.FileField(write_only=True, required=False, allow_null=True)
+    payment_done_from_gr = serializers.PrimaryKeyRelatedField(
+        queryset=GR.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True
+    )   
     
     # ✅ Allow optional manual override of calculated fields
     gst = serializers.DecimalField(
@@ -100,16 +116,20 @@ class BillSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             # Read fields
-            'tenderId',
-            'workId', 'workName', 'tender', 'workPortion', 'gstPercentage', 'tdsPercentage',
+            'tenderId', 'tenderNumber', 'agencyName',
+            'workId', 'workName', 'workDate', 
+            # Work cancellation status
+            'work_is_cancelled', 'work_cancel_reason', 'work_cancel_details',
+            'tender', 'workPortion', 'gstPercentage', 'tdsPercentage',
             'gstOnWorkPortionPercentage', 'lwcPercentage', 'billDate', 'billNumber', 
             'RoyaltyAndTesting', 'Insurance', 'SecurityDeposit', 'ReimbursementOfInsurance', 'Royalty',
             'id','document',
             'billNumber', 'billDate', 
             'gstAmount', 'billTotal', 'tdsAmount', 'gstOnWorkPortion', 'lwcAmount', 'netAmount', 'documentUrl',
+            'paymentDoneFromGrId', 'paymentDoneFromGrNumber',
 
             # Write fields
-            'tender', 'bill_number', 'date', 'work_portion', 
+            'tender', 'bill_number', 'date', 'work_portion', 'payment_done_from_gr', 
             'royalty_and_testing', 'reimbursement_of_insurance', 
             'security_deposit', 'insurance', 'royalty', 'document', 
             # Percentage fields (user can override defaults)

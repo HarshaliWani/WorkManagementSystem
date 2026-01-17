@@ -4,6 +4,16 @@ export interface TechnicalSanction {
   id: number;
   work: number;
   work_name: string;
+
+  subName: string;
+  gr_id: number;
+  gr_name: string;
+  aa: string;
+  
+  // Work cancellation status
+  work_is_cancelled?: boolean;
+  work_cancel_reason?: string | null;
+  work_cancel_details?: string | null;
   
   // Read fields (camelCase - from API)
   workPortion: string;
@@ -17,7 +27,11 @@ export interface TechnicalSanction {
   labourInsurancePercentage: string;
   finalTotal: string;
   
-  // Base fields
+  // Base fields (from API response - capitalized read-only fields)
+  Royalty?: string;
+  Testing?: string;
+  Consultancy?: string;
+  // Also support lowercase for backward compatibility
   work_portion?: string;
   royalty?: string;
   testing?: string;
@@ -33,28 +47,36 @@ export interface TechnicalSanction {
   updated_at: string;
 }
 
+import demoApi from './demoApi';
+
+const getApi = (isDemoMode: boolean) => isDemoMode ? demoApi : api;
+
 export const technicalSanctionService = {
   // Get all technical sanctions
-  fetchAllTechnicalSanctions: async () => {
-    const response = await api.get('/technical-sanctions/');
+  fetchAllTechnicalSanctions: async (isDemoMode: boolean = false) => {
+    const apiInstance = getApi(isDemoMode);
+    const response = await apiInstance.get('/technical-sanctions/');
     return response.data;
   },
 
   // Get technical sanction by ID
-  fetchTechnicalSanctionById: async (id: number | string) => {
-    const response = await api.get(`/technical-sanctions/${id}/`);
+  fetchTechnicalSanctionById: async (id: number | string, isDemoMode: boolean = false) => {
+    const apiInstance = getApi(isDemoMode);
+    const response = await apiInstance.get(`/technical-sanctions/${id}/`);
     return response.data;
   },
 
   // ✅ NEW: Get all technical sanctions for a specific work
-  fetchTechnicalSanctionsByWork: async (workId: string) => {
-    const response = await api.get(`/technical-sanctions/?work=${workId}`);
+  fetchTechnicalSanctionsByWork: async (workId: string, isDemoMode: boolean = false) => {
+    const apiInstance = getApi(isDemoMode);
+    const response = await apiInstance.get(`/technical-sanctions/?work=${workId}`);
     return response.data;
   },
 
   // Create new technical sanction
   createTechnicalSanction: async (tsData: {
     work: number;
+    sub_name: string;
     work_portion: number;
     royalty: number;
     testing: number;
@@ -64,6 +86,8 @@ export const technicalSanctionService = {
     labour_insurance_percentage?: number;
     noting?: boolean;
     order?: boolean;
+    noting_date?: string | null; 
+    order_date?: string | null;
 
     // override fields:
     work_portion_total?: number;
@@ -72,13 +96,15 @@ export const technicalSanctionService = {
     contingency?: number;
     labour_insurance?: number;
     final_total?: number;
-  }) => {
-    const response = await api.post('/technical-sanctions/', tsData);
+  }, isDemoMode: boolean = false) => {
+    const apiInstance = getApi(isDemoMode);
+    const response = await apiInstance.post('/technical-sanctions/', tsData);
     return response.data;
   },
 
   // Update technical sanction
   updateTechnicalSanction: async (id: number | string, tsData: {
+    sub_name?: string;
     work_portion?: number;
     royalty?: number;
     testing?: number;
@@ -88,6 +114,8 @@ export const technicalSanctionService = {
     labour_insurance_percentage?: number;
     noting?: boolean;
     order?: boolean;
+    noting_date?: string | null;
+    order_date?: string | null;
 
     // override fields:
     work_portion_total?: number;
@@ -96,13 +124,15 @@ export const technicalSanctionService = {
     contingency?: number;
     labour_insurance?: number;
     final_total?: number;
-  }) => {
-    const response = await api.patch(`/technical-sanctions/${id}/`, tsData);
+  }, isDemoMode: boolean = false) => {
+    const apiInstance = getApi(isDemoMode);
+    const response = await apiInstance.patch(`/technical-sanctions/${id}/`, tsData);
     return response.data;
   },
 
   // Delete technical sanction
-  deleteTechnicalSanction: async (id: number | string) => {
-    await api.delete(`/technical-sanctions/${id}/`);
+  deleteTechnicalSanction: async (id: number | string, isDemoMode: boolean = false) => {
+    const apiInstance = getApi(isDemoMode);
+    await apiInstance.delete(`/technical-sanctions/${id}/`);
   },
 };

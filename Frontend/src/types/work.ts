@@ -10,11 +10,15 @@ export interface Spill {
 export interface Work {
   id: number;
   workName: string;
+  workDate: string;
   AA: number;
   RA: number;
   gr: number;  // ✅ This is the GR's DATABASE ID (foreign key), NOT the GR number
   spills: Spill[];
   grNumber?: string; // Optional: to hold GR number if needed
+  isCancelled?: boolean;
+  cancelReason?: string | null;
+  cancelDetails?: string | null;
   created_at?: string;
   updated_at?: string;
 }
