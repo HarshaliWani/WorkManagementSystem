@@ -604,7 +604,7 @@ const TSFormModal: React.FC<TSFormModalProps> = ({
             </div>
           )}
 
-          {/* NEW: TS Sub Name */}
+          {/* TS Sub Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               TS Sub Name (Optional)
@@ -616,258 +616,267 @@ const TSFormModal: React.FC<TSFormModalProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="e.g., Phase 1, Section A, etc."
             />
-            <p className="mt-1 text-sm text-gray-500">
-              Enter a descriptive sub-name for this technical sanction
-            </p>
           </div>
 
-          {/* Base Input Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Work Portion *
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.work_portion}
-                onChange={(e) => setFormData({ ...formData, work_portion: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-                placeholder="Enter work portion amount"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Royalty
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.royalty}
-                onChange={(e) => setFormData({ ...formData, royalty: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter royalty amount"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Testing
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.testing}
-                onChange={(e) => setFormData({ ...formData, testing: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter testing amount"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Consultancy
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.consultancy}
-                onChange={(e) => setFormData({ ...formData, consultancy: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter consultancy amount"
-              />
-            </div>
-          </div>
-
-          {/* GST Section */}
-          <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold text-blue-700 mb-3 flex items-center gap-2">
-              <Calculator className="w-5 h-5" />
-              GST Calculation
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  GST % (default 18%)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.gst_percentage}
-                  onChange={(e) => setFormData({ ...formData, gst_percentage: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  GST Amount (Calculated)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={calculatedValues.gst_amount.toFixed(2)}
-                  onChange={(e) => {
-                    setCalculatedValues({ ...calculatedValues, gst_amount: parseFloat(e.target.value) || 0 });
-                    setOverrides({ ...overrides, gst_amount: true });
-                  }}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    overrides.gst_amount ? 'bg-yellow-50 border-yellow-400' : 'bg-gray-100 border-gray-300'
-                  }`}
-                />
-                {overrides.gst_amount && (
-                  <p className="text-xs text-yellow-600 mt-1">⚠ Overridden</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Contingency Section */}
-          <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold text-green-700 mb-3">
-              Contingency
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contingency % (default 4%)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.contingency_percentage}
-                  onChange={(e) => setFormData({ ...formData, contingency_percentage: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contingency Amount (Calculated)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={calculatedValues.contingency_amount.toFixed(2)}
-                  onChange={(e) => {
-                    setCalculatedValues({ ...calculatedValues, contingency_amount: parseFloat(e.target.value) || 0 });
-                    setOverrides({ ...overrides, contingency_amount: true });
-                  }}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                    overrides.contingency_amount ? 'bg-yellow-50 border-yellow-400' : 'bg-gray-100 border-gray-300'
-                  }`}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Labour Insurance Section */}
-          <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold text-purple-700 mb-3">
-              Labour Insurance
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Labour Insurance % (default 1%)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.labour_insurance_percentage}
-                  onChange={(e) => setFormData({ ...formData, labour_insurance_percentage: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Labour Insurance Amount (Calculated)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={calculatedValues.labour_insurance_amount.toFixed(2)}
-                  onChange={(e) => {
-                    setCalculatedValues({ ...calculatedValues, labour_insurance_amount: parseFloat(e.target.value) || 0 });
-                    setOverrides({ ...overrides, labour_insurance_amount: true });
-                  }}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                    overrides.labour_insurance_amount ? 'bg-yellow-50 border-yellow-400' : 'bg-gray-100 border-gray-300'
-                  }`}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Totals */}
-          <div className="bg-gray-50 p-4 rounded-lg border-t-4 border-indigo-500">
-            <h3 className="text-lg font-semibold text-indigo-700 mb-3">
-              Totals
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Grand Total
-                </label>
-                <div className="text-2xl font-bold text-indigo-900">
-                  ₹{calculatedValues.grand_total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          {/* Recapitulation Sheet Layout - Following Financial Statement Flow */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Technical Sanction Amounts (Recapitulation Sheet)</h3>
+            
+            {/* Row 1: Work Portion */}
+            <div className="border border-gray-300 rounded-t-lg overflow-hidden">
+              <div className="flex items-center bg-white">
+                <div className="flex-1 px-4 py-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Work Portion *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.work_portion}
+                    onChange={(e) => setFormData({ ...formData, work_portion: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    placeholder="Enter work portion"
+                  />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Final Total
-                </label>
-                <div className="text-2xl font-bold text-indigo-900">
+
+              {/* Row 2: Royalty */}
+              <div className="flex items-center bg-white border-t">
+                <div className="flex-1 px-4 py-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Royalty Charges
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.royalty}
+                    onChange={(e) => setFormData({ ...formData, royalty: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter royalty"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Testing */}
+              <div className="flex items-center bg-white border-t">
+                <div className="flex-1 px-4 py-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Quality Control Testing Charges
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.testing}
+                    onChange={(e) => setFormData({ ...formData, testing: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter testing"
+                  />
+                </div>
+              </div>
+
+              {/* Subtotal 1 */}
+              <div className="flex items-center bg-gray-200 border-t font-bold">
+                <div className="flex-1 px-4 py-3">
+                  <span className="text-sm text-gray-900">TOTAL (Work Portion)</span>
+                </div>
+                <div className="px-4 py-3 text-right">
+                  <span className="text-sm text-gray-900">
+                    ₹{((parseFloat(formData.work_portion) || 0) + (parseFloat(formData.royalty) || 0) + (parseFloat(formData.testing) || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 4: GST */}
+              <div className="flex items-center bg-white border-t">
+                <div className="flex-1 px-4 py-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Add <span className="text-blue-600 font-semibold">{formData.gst_percentage || '18'}%</span> for G.S.T.
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.gst_percentage}
+                    onChange={(e) => setFormData({ ...formData, gst_percentage: e.target.value })}
+                    className="w-24 px-2 py-1 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="18"
+                  />
+                  <span className="ml-2 text-xs text-gray-600">%</span>
+                </div>
+                <div className="px-4 py-3 text-right min-w-[150px]">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={calculatedValues.gst_amount.toFixed(2)}
+                    onChange={(e) => {
+                      setCalculatedValues({ ...calculatedValues, gst_amount: parseFloat(e.target.value) || 0 });
+                      setOverrides({ ...overrides, gst_amount: true });
+                    }}
+                    className={`w-full px-3 py-1 border rounded-md text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      overrides.gst_amount ? 'bg-yellow-50 border-yellow-400' : 'bg-gray-100 border-gray-300'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Subtotal 2 */}
+              <div className="flex items-center bg-gray-200 border-t font-bold">
+                <div className="flex-1 px-4 py-3">
+                  <span className="text-sm text-gray-900">TOTAL (Grand Total)</span>
+                </div>
+                <div className="px-4 py-3 text-right">
+                  <span className="text-sm text-gray-900">
+                    ₹{calculatedValues.grand_total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 5: Labour Insurance */}
+              <div className="flex items-center bg-white border-t">
+                <div className="flex-1 px-4 py-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Add <span className="text-purple-600 font-semibold">{formData.labour_insurance_percentage || '1'}%</span> Labour Insurance
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.labour_insurance_percentage}
+                    onChange={(e) => setFormData({ ...formData, labour_insurance_percentage: e.target.value })}
+                    className="w-24 px-2 py-1 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="1"
+                  />
+                  <span className="ml-2 text-xs text-gray-600">%</span>
+                </div>
+                <div className="px-4 py-3 text-right min-w-[150px]">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={calculatedValues.labour_insurance_amount.toFixed(2)}
+                    onChange={(e) => {
+                      setCalculatedValues({ ...calculatedValues, labour_insurance_amount: parseFloat(e.target.value) || 0 });
+                      setOverrides({ ...overrides, labour_insurance_amount: true });
+                    }}
+                    className={`w-full px-3 py-1 border rounded-md text-sm text-right focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                      overrides.labour_insurance_amount ? 'bg-yellow-50 border-yellow-400' : 'bg-gray-100 border-gray-300'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Subtotal 3 */}
+              <div className="flex items-center bg-gray-200 border-t font-bold">
+                <div className="flex-1 px-4 py-3">
+                  <span className="text-sm text-gray-900">TOTAL (After Labour Insurance)</span>
+                </div>
+                <div className="px-4 py-3 text-right">
+                  <span className="text-sm text-gray-900">
+                    ₹{(calculatedValues.grand_total + calculatedValues.labour_insurance_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Row 6: Contingency (Green) */}
+              <div className="flex items-center bg-green-50 border-t">
+                <div className="flex-1 px-4 py-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Add <span className="text-green-600 font-semibold">{formData.contingency_percentage || '4'}%</span> Contingency
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.contingency_percentage}
+                    onChange={(e) => setFormData({ ...formData, contingency_percentage: e.target.value })}
+                    className="w-24 px-2 py-1 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="4"
+                  />
+                  <span className="ml-2 text-xs text-gray-600">%</span>
+                </div>
+                <div className="px-4 py-3 text-right min-w-[150px]">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={calculatedValues.contingency_amount.toFixed(2)}
+                    onChange={(e) => {
+                      setCalculatedValues({ ...calculatedValues, contingency_amount: parseFloat(e.target.value) || 0 });
+                      setOverrides({ ...overrides, contingency_amount: true });
+                    }}
+                    className={`w-full px-3 py-1 border rounded-md text-sm text-right focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                      overrides.contingency_amount ? 'bg-yellow-50 border-yellow-400' : 'bg-gray-100 border-gray-300'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Row 7: Consultancy (Green) */}
+              <div className="flex items-center bg-green-50 border-t">
+                <div className="flex-1 px-4 py-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Add Consultancy Charges
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.consultancy}
+                    onChange={(e) => setFormData({ ...formData, consultancy: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter consultancy"
+                  />
+                </div>
+              </div>
+
+              {/* Subtotal 4 */}
+              <div className="flex items-center bg-gray-200 border-t font-bold">
+                <div className="flex-1 px-4 py-3">
+                  <span className="text-sm text-gray-900">TOTAL</span>
+                </div>
+                <div className="px-4 py-3 text-right">
+                  <span className="text-sm text-gray-900">
+                    ₹{calculatedValues.final_total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Final Say */}
+              <div className="flex items-center bg-gray-300 border-t rounded-b-lg font-bold">
+                <div className="flex-1 px-4 py-3">
+                  <span className="text-sm text-gray-900">Say (Final Total)</span>
+                </div>
+                <div className="px-4 py-3 text-right text-lg text-gray-900">
                   ₹{calculatedValues.final_total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* NEW: Noting & Order with Manual Dates */}
-          <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold text-gray-700 mb-3">
-              Status & Dates
-            </h3>
+          {/* Status & Dates */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Status & Dates</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Noting */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     id="noting"
                     checked={formData.noting}
                     onChange={(e) => setFormData({ ...formData, noting: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                   />
-                  <label htmlFor="noting" className="text-sm font-medium text-gray-700">
-                    Noting
-                  </label>
-                </div>
+                  <span className="text-sm font-medium text-gray-700">Noting</span>
+                </label>
                 {formData.noting && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Noting Date
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.noting_date}
-                      onChange={(e) => setFormData({ ...formData, noting_date: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Leave empty to auto-fill with today's date
-                    </p>
-                  </div>
+                  <input
+                    type="date"
+                    value={formData.noting_date}
+                    onChange={(e) => setFormData({ ...formData, noting_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ml-7"
+                  />
                 )}
               </div>
 
               {/* Order */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     id="order"
@@ -875,25 +884,15 @@ const TSFormModal: React.FC<TSFormModalProps> = ({
                     onChange={(e) => setFormData({ ...formData, order: e.target.checked })}
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
-                  <label htmlFor="order" className="text-sm font-medium text-gray-700">
-                    Order
-                  </label>
-                </div>
+                  <span className="text-sm font-medium text-gray-700">Order</span>
+                </label>
                 {formData.order && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Order Date
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.order_date}
-                      onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Leave empty to auto-fill with today's date
-                    </p>
-                  </div>
+                  <input
+                    type="date"
+                    value={formData.order_date}
+                    onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ml-7"
+                  />
                 )}
               </div>
             </div>

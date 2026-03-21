@@ -1,3 +1,24 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Make tables use fixed layout and allow wrapping of long content
+	 - table-layout: fixed prevents columns from resizing to fit long words
+	 - td/th white-space and word-break allow wrapping
+*/
+.fixed-table {
+	table-layout: fixed;
+	width: 100%;
+}
+.fixed-table th,
+.fixed-table td {
+	white-space: normal;
+	word-break: break-word;
+}
+
+/* Proportional column width utilities for fair space distribution */
+.col-expand { width: 30%; }  /* For content-heavy columns (names, descriptions) */
+.col-lg { width: 18%; }      /* Large columns (longer text) */
+.col-md { width: 14%; }      /* Medium columns (currency, dates) */
+.col-sm { width: 10%; }      /* Small columns (short values, icons) */
+.col-xs { width: 6%; }       /* Extra small columns (expand icons, minimal) */

@@ -119,23 +119,23 @@ const WorkTable: React.FC<WorkTableProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
-      <table className="min-w-full divide-y divide-gray-200">
+      <table className="min-w-full divide-y divide-gray-200 fixed-table">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="col-xs px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+            <th className="col-expand px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Work Name
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="col-md px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Work Date
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="col-md px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               AA
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="col-md px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Total RA
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="col-md px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Balance
             </th>
             {isEditMode && (
@@ -159,14 +159,14 @@ const WorkTable: React.FC<WorkTableProps> = ({
                   onContextMenu={(e) => handleContextMenu(e, work)}
                   title={work.isCancelled && work.cancelReason ? `Cancelled: ${work.cancelReason === 'SHIFTED_TO_OTHER_WORK' ? 'Work shifted to another work' : 'Work assigned to different department'}` : undefined}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <td className="col-xs px-6 py-4 whitespace-nowrap">
                     {isExpanded ? (
                       <ChevronDown className="w-5 h-5 text-gray-400" />
                     ) : (
                       <ChevronRight className="w-5 h-5 text-gray-400" />
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="col-expand px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center gap-2">
                       <span className={work.isCancelled ? 'text-gray-500' : 'text-gray-900'}>
                         {work.workName}
@@ -178,16 +178,16 @@ const WorkTable: React.FC<WorkTableProps> = ({
                       )}
                     </div>
                   </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${work.isCancelled ? 'text-gray-500' : 'text-gray-700'}`}>
+                  <td className={`col-md px-6 py-4 whitespace-nowrap text-sm ${work.isCancelled ? 'text-gray-500' : 'text-gray-700'}`}>
                     {work.workDate}
                   </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${work.isCancelled ? 'text-gray-500' : 'text-blue-900'}`}>
+                  <td className={`col-md px-6 py-4 whitespace-nowrap text-sm font-semibold ${work.isCancelled ? 'text-gray-500' : 'text-blue-900'}`}>
                     {formatCurrency(Number(work.AA) || 0)}
                   </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${work.isCancelled ? 'text-gray-500' : 'text-green-900'}`}>
+                  <td className={`col-md px-6 py-4 whitespace-nowrap text-sm font-semibold ${work.isCancelled ? 'text-gray-500' : 'text-green-900'}`}>
                     {formatCurrency(calculateTotalRA(work))}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="col-md px-6 py-4 whitespace-nowrap text-sm">
                     <span
                       className={`font-bold ${work.isCancelled ? 'text-gray-500' : balance >= 0 ? 'text-green-600' : 'text-red-600'}`}
                     >
@@ -195,7 +195,7 @@ const WorkTable: React.FC<WorkTableProps> = ({
                     </span>
                   </td>
                   {isEditMode && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="col-sm px-6 py-4 whitespace-nowrap text-sm">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

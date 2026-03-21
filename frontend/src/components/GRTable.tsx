@@ -294,20 +294,20 @@ export const GRTable: React.FC<GRTableProps> = ({ grs, isEditMode, onDataUpdate 
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full fixed-table">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-12"></th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="col-xs px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"></th>
+                <th className="col-lg px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   GR Number
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="col-md px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Date
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="col-sm px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Works Count
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="col-md px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Document
                 </th>
                 {isEditMode && (
