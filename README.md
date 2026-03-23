@@ -1,10 +1,7 @@
 # WorkManagementSystem
 
-[![Stars](https://img.shields.io/github/stars/your-username/WorkManagementSystem?style=flat-square)](https://github.com/your-username/WorkManagementSystem/stargazers)
-[![Forks](https://img.shields.io/github/forks/your-username/WorkManagementSystem?style=flat-square)](https://github.com/your-username/WorkManagementSystem/network/members)
-
 ![Demo GIF](./docs/demo.gif)
-Live: [https://your-live-url.example.com](https://your-live-url.example.com)
+Live: [WorkManagementSystem](http://13.51.206.221:3000)
 
 ## 🎯 Overview
 End-to-end office workflow platform for tracking public works from GR release to tendering, execution, and final bill processing.
@@ -18,10 +15,14 @@ End-to-end office workflow platform for tracking public works from GR release to
 React, TypeScript, Vite, Tailwind CSS, Django, Django REST Framework, PostgreSQL, Docker
 
 ## 📈 Results
-85% acc | Live users | Prize
+<div align='center'> 
+<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/a6b313b1-b9ca-463e-9dfc-88b420fc51c4" /> 
+  
+<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/d24fe833-0643-41b9-9b9f-2a4a916239eb" />
 
-## 🤝 Live | GitHub
-[Deploy](https://your-live-url.example.com) | [Repo Stats](https://github.com/your-username/WorkManagementSystem/pulse)
+<img width="600" height="400" alt="image" src="https://github.com/user-attachments/assets/2d683286-8154-46d0-8449-ab2eb541c418" />
+</div>
+
 
 ## 📋 Setup
 
